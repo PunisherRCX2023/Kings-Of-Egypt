@@ -88,7 +88,8 @@
     }
     .reel-strip { display: flex; flex-direction: column; position: absolute; width: 100%; top: 0; }
     .reel.rolling .reel-strip { animation: reelProcessing 0.16s linear infinite; }
-    @keyframes reelProcessing { from { transform: translateY(0); } to { transform: translateY(-240px); } }
+    /* Os símbolos deslocam-se visualmente de cima para baixo. */
+    @keyframes reelProcessing { from { transform: translateY(-240px); } to { transform: translateY(0); } }
     .symbol {
       height: 80px; display: flex; justify-content: center; align-items: center;
       font-size: 38px; box-sizing: border-box; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
@@ -1593,33 +1594,72 @@
       bonusBuyPending = false;
       const plannedGrid = plan.initialGrid;
       const totalScatters = plan.scatterCount;
-      const revealResult = () => {
-        for (let r = 0; r < 5; r++) {
-          const reelEl = document.getElementById('reel-' + r);
-          const strip = document.getElementById('strip-' + r);
-          reelEl.classList.remove('rolling', 'anticipate');
-          reelEl.classList.add('cascading');
-          strip.innerHTML = '';
-          gridState[r] = plannedGrid[r].slice();
-          plannedGrid[r].forEach(sym => {
-            const cell = document.createElement('div');
-            cell.className = 'symbol';
-            if (sym === '📖') {
-              cell.classList.add('book-glow');
-              bonusBookCount++;
-              playBookCue(bonusBookCount);
-            }
-            cell.innerHTML = symHTML(sym);
-            cell.dataset.sym = sym;
-            strip.appendChild(cell);
-          });
-          playReelStop(r);
-          setTimeout(() => reelEl.classList.remove('cascading'), isTurbo ? 180 : 350);
-        }
+      let stoppedReels = 0;
+      let stoppedScatters = 0;
+      let teaseMode = false;
+      let stopSequenceFinished = false;
+
+      const revealOneReel = (r) => {
+        const reelEl = document.getElementById('reel-' + r);
+        const strip = document.getElementById('strip-' + r);
+        reelEl.classList.remove('rolling', 'anticipate');
+        reelEl.classList.add('cascading');
+        strip.innerHTML = '';
+        gridState[r] = plannedGrid[r].slice();
+        plannedGrid[r].forEach(sym => {
+          const cell = document.createElement('div');
+          cell.className = 'symbol';
+          if (sym === '📖') {
+            cell.classList.add('book-glow');
+            bonusBookCount++;
+            playBookCue(bonusBookCount);
+          }
+          cell.innerHTML = symHTML(sym);
+          cell.dataset.sym = sym;
+          strip.appendChild(cell);
+        });
+        playReelStop(r);
+        setTimeout(() => reelEl.classList.remove('cascading'), isTurbo ? 180 : 350);
+        stoppedReels++;
+        stoppedScatters += plannedGrid[r].filter(sym => sym === '📖').length;
+      };
+
+      const finishStopSequence = () => {
+        if (stopSequenceFinished) return;
+        stopSequenceFinished = true;
+        // Se o terceiro scatter aparecer, revela imediatamente os tambores restantes.
+        for (let r = stoppedReels; r < 5; r++) revealOneReel(r);
         setTimeout(() => playPlannedCascades(plan, totalScatters), isTurbo ? 120 : 220);
       };
+
+      const stopNextReel = (r) => {
+        if (stopSequenceFinished || r >= 5) {
+          finishStopSequence();
+          return;
+        }
+        revealOneReel(r);
+
+        // Dois scatters nos dois primeiros tambores ativam a sequência de suspense:
+        // terceiro tambor após 1 s, quarto após 2 s e quinto após 3 s.
+        if (r === 1 && stoppedScatters >= 2) teaseMode = true;
+
+        // Assim que aparece o terceiro scatter, todos os tambores restantes param.
+        if (stoppedScatters >= 3) {
+          finishStopSequence();
+          return;
+        }
+
+        if (r === 4) {
+          finishStopSequence();
+          return;
+        }
+
+        const delay = teaseMode && r >= 1 ? 1000 : (isTurbo ? 180 : 320);
+        setTimeout(() => stopNextReel(r + 1), delay);
+      };
+
       const remainingSpinTime = Math.max(0, 2000 - (performance.now() - spinStartedAt));
-      setTimeout(revealResult, remainingSpinTime);
+      setTimeout(() => stopNextReel(0), remainingSpinTime);
     }, 0);
   }
   function renderSpinGrid(grid, winningCells) {
