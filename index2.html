@@ -1227,13 +1227,20 @@
   }
   function evalGrid(grid) { return evaluateGridDetailed(grid).win; }
 
-  function simulateCascadeChain(initialGrid, rtp) {
+  function simulateCascadeChain(initialGrid, rtp, maxWin = Infinity) {
     let current = initialGrid.map(reel => reel.slice());
     let totalWin = 0;
     const cascades = [];
     while (true) {
       const result = evaluateGridDetailed(current);
       if (result.win <= 0) break;
+      totalWin += result.win;
+      // Se o prémio acumulado já ultrapassa o cofre, rejeita este candidato
+      // antes de calcular/refazer cascatas que nunca poderão ser apresentadas.
+      // Não limita cascatas válidas nem reduz pagamentos: só acelera candidatos inválidos.
+      if (totalWin > maxWin + 1e-9) {
+        return { cascades: [], finalGrid: current, totalWin };
+      }
       const nextGrid = [];
       for (let r = 0; r < 5; r++) {
         const survivors = [];
@@ -1254,7 +1261,6 @@
         win: result.win,
         nextGrid: nextGrid.map(reel => reel.slice())
       });
-      totalWin += result.win;
       current = nextGrid;
     }
     return { cascades, finalGrid: current, totalWin };
@@ -1319,7 +1325,7 @@
       const candidate = attempt === 0
         ? firstGrid
         : fixedBookRows.map(row => generateReelSymbols(rtp, row));
-      const cascade = simulateCascadeChain(candidate, rtp);
+      const cascade = simulateCascadeChain(candidate, rtp, available);
       const totalWin = cascade.totalWin + teaseBonus;
       if (totalWin <= available + 1e-9) {
         return {
@@ -1337,7 +1343,7 @@
     if (isBonusBuySpin) {
       for (let attempt = 0; attempt < 12000; attempt++) {
         const candidate = fixedBookRows.map(row => generateReelSymbols(rtp, row));
-        const cascade = simulateCascadeChain(candidate, rtp);
+        const cascade = simulateCascadeChain(candidate, rtp, available);
         if (cascade.totalWin <= available + 1e-9) {
           return {
             initialGrid: candidate.map(reel => reel.slice()),
@@ -1525,7 +1531,22 @@
     }
 
     const rtp = Math.min(100, parseInt(document.getElementById('inputRtp').value, 10) || 96);
-    const plan = planSpinOutcome(rtp, isBonusBuySpin);
+    let plan;
+    try {
+      plan = planSpinOutcome(rtp, isBonusBuySpin);
+    } catch (error) {
+      console.error('Falha ao preparar o giro:', error);
+      bonusBuyPending = false;
+      isSpinning = false;
+      disableBetControls(false);
+      const spinBtn = document.getElementById('spinBtn');
+      spinBtn.classList.remove('disabled', 'stop-mode');
+      setSpinFace('play');
+      document.getElementById('statusBanner').innerText = 'NÃO FOI POSSÍVEL PREPARAR O GIRO — TENTE NOVAMENTE';
+      updateUI();
+      if (autoSpinActive) stopAutoSpin();
+      return;
+    }
     bonusBuyPending = false;
     const plannedGrid = plan.initialGrid;
     const totalScatters = plan.scatterCount;
