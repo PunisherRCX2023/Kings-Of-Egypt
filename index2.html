@@ -87,9 +87,6 @@
       flex-direction: column; height: 240px; position: relative; overflow: hidden;
     }
     .reel-strip { display: flex; flex-direction: column; position: absolute; width: 100%; top: 0; }
-    .reel.rolling .reel-strip { animation: reelProcessing 0.16s linear infinite; }
-    /* Os símbolos deslocam-se visualmente de cima para baixo. */
-    @keyframes reelProcessing { from { transform: translateY(-240px); } to { transform: translateY(0); } }
     .symbol {
       height: 80px; display: flex; justify-content: center; align-items: center;
       font-size: 38px; box-sizing: border-box; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
@@ -400,21 +397,10 @@
     .sound-trigger svg, .menu-trigger svg { width: calc(var(--u) * 44); height: calc(var(--u) * 44); }
     .sound-trigger.muted { opacity: .75; }
     .clock { right: calc(var(--u) * 14); top: calc(var(--u) * 104); z-index: 6; padding: calc(var(--u) * 2) calc(var(--u) * 14); font-size: calc(var(--u) * 24); color: #f4ead0; background: rgba(8,8,10,.72); border-radius: calc(var(--u) * 8); }
-    .version-trigger {
-      position: absolute; left: calc(var(--u) * 14); top: calc(var(--u) * 104); z-index: 7;
-      padding: calc(var(--u) * 5) calc(var(--u) * 13); border: 1px solid #d9a940;
-      border-radius: calc(var(--u) * 8); color: #ffe18a; background: rgba(8,8,10,.82);
-      font-size: calc(var(--u) * 19); font-weight: 800; letter-spacing: .04em; cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,.55);
-    }
-    .version-number { color: #ffe18a; font-size: 30px; font-weight: 900; text-align: center; letter-spacing: 2px; padding: 12px 0 4px; }
-    .version-note { color: #d8cba8; font-size: 12px; line-height: 1.5; text-align: center; }
 
     /* linha de ícones decorativos */
     .deco { z-index: 3; border-radius: calc(var(--u) * 10); border: calc(var(--u) * 4) solid #d9a940; box-shadow: inset 0 0 calc(var(--u) * 18) rgba(0,0,0,.65), 0 calc(var(--u) * 4) calc(var(--u) * 10) rgba(0,0,0,.8); display: flex; align-items: center; justify-content: center; }
     .deco svg { width: 74%; height: 74%; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
-    /* Limita as imagens dos cinco símbolos decorativos ao interior de cada moldura */
-    .deco img { display: block; width: 72%; height: 72%; max-width: 100%; max-height: 100%; object-fit: contain; flex: 0 0 auto; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
     .d1 { background: radial-gradient(circle at 50% 40%, #2f63b8, #0b1d47); } .d2 { background: radial-gradient(circle at 50% 40%, #c8601f, #5a1d08); }
     .d3 { background: radial-gradient(circle at 50% 40%, #2a64b0, #0a1f4a); } .d4 { background: radial-gradient(circle at 50% 40%, #2c9a62, #0c3d27); }
     .d5 { background: radial-gradient(circle at 50% 40%, #1fa0a8, #0a3a44); }
@@ -533,18 +519,6 @@
     .cfg-lock { border: 1px solid rgba(212,174,80,.35); border-radius: 8px; padding: 10px; margin-bottom: 8px; background: #0e0a05; }
     #cfgLockStatus { font-size: 12px; font-weight: 700; color: #ffda73; margin-bottom: 8px; }
     input[type=range]:disabled { opacity: .4; }
-    /* Areia animada egípcia no tabuleiro e no loading */
-    .sand-particles { position:absolute; inset:0; z-index:8; overflow:hidden; pointer-events:none; opacity:.42; }
-    .sand-particles::before, .sand-particles::after { content:""; position:absolute; inset:-35% -20%; pointer-events:none; background-repeat:repeat; }
-    .sand-particles::before { background-image:radial-gradient(circle, rgba(255,218,142,.9) 0 1px, transparent 1.8px), radial-gradient(circle, rgba(199,137,65,.75) 0 1px, transparent 2px); background-size:83px 71px, 137px 109px; background-position:0 0, 34px 51px; animation:sand-drift 18s linear infinite; }
-    .sand-particles::after { opacity:.55; background-image:radial-gradient(circle, rgba(255,238,190,.8) 0 1.4px, transparent 2.3px), radial-gradient(circle, rgba(170,111,47,.8) 0 1px, transparent 2px); background-size:119px 97px, 173px 131px; background-position:19px 27px, 70px 11px; animation:sand-drift 29s linear infinite reverse; }
-    @keyframes sand-drift { from { transform:translate3d(-3%, -2%, 0); } to { transform:translate3d(8%, 7%, 0); } }
-    #loading .sand-particles { z-index:8; opacity:.42; }
-    #loading > img, #loading > #ldTxt, #loading > #ldBtn { position:relative; z-index:9; }
-    @media (prefers-reduced-motion: reduce) { .sand-particles::before, .sand-particles::after { animation:none; } }
-    #bonusBuyContainer { animation:none !important; }
-    .btn-autospin-trigger.active-count { font-size: calc(var(--u) * 30); color:#fff1a6; }
-    .btn-autospin-trigger.active-count b { font-size: inherit; }
 </style>
 </head>
 <body>
@@ -565,9 +539,8 @@
 </defs></svg>
 
 <div id="bgfill" aria-hidden="true"></div>
-<div id="loading"><div class="sand-particles" aria-hidden="true"></div><img src="assets/img/loading_title.png" alt="Kings of Egypt"><div id="ldTxt"><div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div><div class="ld-note">A carregar…</div></div><button type="button" id="ldBtn">TOCAR PARA JOGAR</button></div>
+<div id="loading"><img src="assets/img/loading_title.png" alt="Kings of Egypt"><div id="ldTxt"><div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div><div class="ld-note">A carregar…</div></div><button type="button" id="ldBtn">TOCAR PARA JOGAR</button></div>
 <div id="game-container">
-  <div class="sand-particles" aria-hidden="true"></div>
   <div class="topbar">
     <button class="sound-trigger" id="soundToggle" type="button" onclick="toggleSound()" aria-label="Desligar som"></button>
     <button type="button" class="tb-btn tb-dark" style="left:calc(var(--u)*186.00);top:calc(var(--u)*12.00);width:calc(var(--u)*200.00);height:calc(var(--u)*72.00);" onclick="openWithdrawModal()">Levantar</button>
@@ -576,9 +549,8 @@
   </div>
   <div class="grp">
   <div class="clock" id="clock">10:30</div>
-  <button class="version-trigger" type="button" onclick="openModal('version-modal')" aria-label="Ver versão do jogo">v1.46.3</button>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
-  <div class="deco d1" style="left:calc(var(--u)*88.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/eye-of-horus.PNG" alt="" aria-hidden="true"></div><div class="deco d2" style="left:calc(var(--u)*208.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/scarab.PNG" alt="" aria-hidden="true"></div><div class="deco d3" style="left:calc(var(--u)*328.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/Ankh.PNG" alt="" aria-hidden="true"></div><div class="deco d4" style="left:calc(var(--u)*448.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/djed-pillar.PNG" alt="" aria-hidden="true"></div><div class="deco d5" style="left:calc(var(--u)*568.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/feather-maat.PNG" alt="" aria-hidden="true"></div>
+  <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 34Q32 10 58 34Q32 56 6 34Z" fill="none" stroke="url(#gGold)" stroke-width="4"/><circle cx="32" cy="34" r="9" fill="url(#gGold)"/><circle cx="32" cy="34" r="4" fill="#111"/><path d="M20 46q-2 10-12 12M34 45v14q0 4 8 4" fill="none" stroke="url(#gGold)" stroke-width="3.5" stroke-linecap="round"/></svg></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M17 36C8 32 5 24 6 17c8 1 14 5 17 12M47 36c9-4 12-12 11-19-8 1-14 5-17 12" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="1.5"/><ellipse cx="32" cy="40" rx="15" ry="18" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="2"/><path d="M32 22v36" stroke="#5a3a0a" stroke-width="2"/><circle cx="32" cy="15" r="7" fill="url(#gSun)" stroke="#5a3a0a" stroke-width="1.5"/></svg></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="20" r="12" fill="none" stroke="url(#gGold)" stroke-width="7"/><path d="M32 32v28M16 44h32" stroke="url(#gGold)" stroke-width="7" stroke-linecap="round"/></svg></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="22" rx="17" ry="13" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="1.6"/><circle cx="32" cy="11" r="7" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="1.4"/><circle cx="29.5" cy="10" r="1.6" fill="#111"/><circle cx="34.5" cy="10" r="1.6" fill="#111"/><path d="M32 32C32 44 16 44 18 53C20 60 44 60 46 52" fill="none" stroke="url(#gGold)" stroke-width="8" stroke-linecap="round"/><path d="M32 32C32 44 16 44 18 53C20 60 44 60 46 52" fill="none" stroke="#5a3a0a" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M50 6C24 10 10 30 12 52c14-4 34-14 38-46Z" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="1.5"/><path d="M12 58 46 14" stroke="#5a3a0a" stroke-width="2.4"/></svg></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
   <img class="slot-img" src="assets/img/slot.png" alt="" style="left:calc(var(--u)*0.00);top:calc(var(--u)*322.00);width:calc(var(--u)*768.00);height:calc(var(--u)*537.00);">
   <div class="reels-container" id="reelsContainer" style="left:calc(var(--u)*51.00);top:calc(var(--u)*345.00);width:calc(var(--u)*664.00);height:calc(var(--u)*385.00);"><div class="reel" id="reel-0"><div class="reel-strip" id="strip-0"></div></div><div class="reel" id="reel-1"><div class="reel-strip" id="strip-1"></div></div><div class="reel" id="reel-2"><div class="reel-strip" id="strip-2"></div></div><div class="reel" id="reel-3"><div class="reel-strip" id="strip-3"></div></div><div class="reel" id="reel-4"><div class="reel-strip" id="strip-4"></div></div></div>
@@ -586,7 +558,7 @@
   <div class="win-popup" id="winPopup" style="left:calc(var(--u)*383.00);top:calc(var(--u)*537.00)"></div>
   <div class="status-banner" id="statusBanner" style="left:calc(var(--u)*40.00);top:calc(var(--u)*864.00);width:calc(var(--u)*688.00);height:calc(var(--u)*38.00);">PRESSIONE JOGAR PARA COMEÇAR</div>
   <div class="spin-btn" id="spinBtn" role="button" aria-label="Jogar" onclick="handleSpinButtonAction()" style="left:calc(var(--u)*280.39);top:calc(var(--u)*913.29);width:calc(var(--u)*206.00);height:calc(var(--u)*206.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M50 27A20 20 0 0 0 14 22" fill="none" stroke="#ffe9a8" stroke-width="6" stroke-linecap="round"/><path d="M14 37A20 20 0 0 0 50 42" fill="none" stroke="#ffe9a8" stroke-width="6" stroke-linecap="round"/><path d="M55 12v18H37zM9 52V34h18z" fill="#ffe9a8"/></svg><span>JOGAR</span></div>
-  <button type="button" class="btn-autospin-trigger" id="autoBtn" onclick="handleAutoSpinButton()" style="left:calc(var(--u)*330.89);top:calc(var(--u)*1154.87);width:calc(var(--u)*105.00);height:calc(var(--u)*105.00);"><b>AUTO</b><b>SPIN</b></button>
+  <button type="button" class="btn-autospin-trigger" id="autoBtn" onclick="openAutoSpinModal()" style="left:calc(var(--u)*330.89);top:calc(var(--u)*1154.87);width:calc(var(--u)*105.00);height:calc(var(--u)*105.00);"><b>AUTO</b><b>SPIN</b></button>
   <img class="play-img" src="assets/img/button_play.png" alt="" style="left:calc(var(--u)*81.00);top:calc(var(--u)*898.00);width:calc(var(--u)*606.00);height:calc(var(--u)*380.30);">
   <div class="btn-side" id="turboBtn" role="button" onclick="toggleTurbo()" style="left:calc(var(--u)*88.00);top:calc(var(--u)*966.00);width:calc(var(--u)*172.00);height:calc(var(--u)*134.00);"><svg class="tb-icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="#6b3d08" stroke-width="4"/><path d="M36 6 16 36h14l-4 22 22-32H34z" fill="#6b3d08"/></svg><span>TURBO</span><div class="toggle-switch"><div class="toggle-thumb"></div></div></div>
   <div class="btn-bonus-buy" id="bonusBuyContainer" role="button" onclick="openBonusBuyModal()" style="left:calc(var(--u)*508.00);top:calc(var(--u)*966.00);width:calc(var(--u)*172.00);height:calc(var(--u)*134.00);"><span>COMPRAR</span><span>BÓNUS</span><b id="bonusBuyPill">0.00 €</b></div>
@@ -713,16 +685,6 @@
     </div>
   </div>
 
-  <div class="modal" id="version-modal">
-    <div class="modal-header">
-      <div class="modal-title">Versão do Jogo</div>
-      <button class="close-btn" type="button" onclick="closeModal('version-modal')" aria-label="Fechar">✕</button>
-    </div>
-    <div class="version-number">v1.46.3</div>
-    <div class="version-note">Kings of Egypt<br>Versão inicial da série 1.x</div>
-    <button class="btn-action" type="button" style="width:100%;" onclick="closeModal('version-modal')">FECHAR</button>
-  </div>
-
   <!-- MENU / ADMIN / RULES MODAL -->
   <div class="modal" id="menu-modal">
     <div class="modal-header">
@@ -821,23 +783,11 @@
             </div>
             <button class="btn-action" id="lockCfgBtn" style="display:none; background:linear-gradient(180deg, #d32f2f 0%, #8a1c1c 100%); color:#fff;" onclick="lockCfg()">Bloquear Novamente</button>
             <button class="btn-action" id="resetCounterBtn" style="display:none; margin-top:8px;" onclick="resetCounter()">Zerar Contador</button>
-            <div class="form-group" style="margin-top:10px;">
-              <label>Depositar no Cofre de Prémios (€):</label>
-              <div style="display:flex; gap:6px; align-items:center;">
-                <input type="number" id="prizeVaultDepositInput" class="form-control" min="0.01" step="0.01" placeholder="Valor a depositar">
-                <button type="button" class="btn-action" id="depositPrizeVaultBtn" style="margin-top:0; white-space:nowrap;" onclick="depositPrizeVault()">Depositar Cofre</button>
-              </div>
-            </div>
           </div>
           <div class="slider-container">
             <label style="font-size:11px; color:#aaa;">RTP alvo (ajuste de distribuição, longo prazo) (%):</label>
             <div class="slider-val" id="valRtp">96%</div>
-            <input type="range" id="inputRtp" disabled min="50" max="100" value="96" oninput="document.getElementById('valRtp').innerText=this.value+'%'">
-          </div>
-          <div class="slider-container" style="margin-top:6px;">
-            <label style="font-size:11px; color:#aaa;">Volatilidade da máquina:</label>
-            <div class="slider-val" id="valVolatility">Médio</div>
-            <input type="range" id="inputVolatility" disabled min="1" max="5" step="1" value="3" oninput="updateVolatilityDisplay(this.value)">
+            <input type="range" id="inputRtp" disabled min="50" max="120" value="96" oninput="document.getElementById('valRtp').innerText=this.value+'%'">
           </div>
           <div class="slider-container" style="margin-top:6px;">
             <label style="font-size:11px; color:#aaa;">Probabilidade de Pirâmide por tambor (Bónus, jogo normal):</label>
@@ -1106,9 +1056,6 @@
   let totalPayoutsStat = 0.00;
   let totalDepStat = 0.00;
   let totalWithStat = 0.00;
-  // Saldo autónomo do cofre de prémios: alimentado por apostas (líquidas da reserva)
-  // e por depósitos técnicos; os prémios pagos são debitados deste saldo.
-  let prizeVaultBalance = 0.00;
   
   let depositsHistory = [];
   let withdrawalsHistory = [];
@@ -1119,28 +1066,15 @@
   let collabPercentage = 20;
 
   let isSpinning = false;
-  // Identificador único por jogada: invalida callbacks atrasados de giros anteriores.
-  let spinSequenceId = 0;
-  let activeSpinId = 0;
-  let lastFinishedSpinId = 0;
   let isTurbo = false;
   let inFreeSpins = false;
-  let currentSpinIsFree = false;
   let freeSpinsLeft = 0;
   let bonusTotalWinAccumulated = 0;
-  let bonusAwaitingConfirmation = false;
-  let freeSpinTimer = null;
-  let paidWinChainActive = false;
-  let paidWinChainTimer = null;
   let expandingSymbol = '';
   let gridState = [[],[],[],[],[]];
 
   let autoSpinCount = 0;
   let autoSpinActive = false;
-  let autoSpinTimer = null;
-  let currentSpinIsAuto = false;
-  let bonusBuyPending = false;
-  let pendingBonusSpins = 8;
   let selectedAutoSpinsOption = 10;
 
   function toggleTurbo() {
@@ -1161,7 +1095,7 @@
 
   // Probabilidade REAL (por tambor) de aparecer 1 Pirâmide. É o valor configurado no painel de administração.
   function getScatterReelProb() {
-    const vault = getPrizeVault();
+    const vault = getVault();
     if (vault < VAULT_MIN_FOR_BOOKS) return 0;
     const id = inFreeSpins ? 'inputRetriggerProb' : 'inputBonusProb';
     return Number(document.getElementById(id).value) / 100;
@@ -1175,11 +1109,11 @@
   function generateReelSymbols(rtp, fixedBookRow) {
     const reelSyms = [];
     let highSymbolUsedInReel = null;
+    // Um único sorteio por tambor decide se há Pirâmide (e em que fila): a Pirâmide deixa de "vazar" pela tabela normal de símbolos.
     const bookRow = (fixedBookRow !== undefined) ? fixedBookRow : (Math.random() < getScatterReelProb() ? Math.floor(Math.random() * 3) : -1);
+
+    // Ajuste de distribuição por RTP: altera o peso relativo dos símbolos altos/baixos.
     const rtpFactor = Math.max(0.5, Math.min(1.2, (Number(rtp) || 96) / 96));
-    const volatilityBias = [0.62, 0.78, 0.92, 1.08, 1.28][getVolatilityLevel() - 1];
-    const highWeight = rtpFactor * volatilityBias;
-    const lowWeight = (2 - rtpFactor) / volatilityBias;
     for (let s = 0; s < 3; s++) {
       if (s === bookRow) { reelSyms.push('📖'); continue; }
       const pool = SYMBOLS.filter(symbol => {
@@ -1189,7 +1123,8 @@
       });
       const weighted = [];
       pool.forEach(symbol => {
-        const weight = HIGH_SYMBOLS.includes(symbol) ? highWeight : lowWeight;
+        const high = HIGH_SYMBOLS.includes(symbol);
+        const weight = high ? rtpFactor : (2 - rtpFactor);
         for (let n = 0; n < Math.max(1, Math.round(weight * 10)); n++) weighted.push(symbol);
       });
       const sym = weighted[Math.floor(Math.random() * weighted.length)];
@@ -1200,220 +1135,96 @@
   }
 
 
-  // ===== Cofre de prémios, volatilidade e planeamento integral do giro =====
-  const VOLATILITY_NAMES = ['Muito Baixo', 'Baixo', 'Médio', 'Alto', 'Muito Alto'];
-  function getVolatilityLevel() {
-    const el = document.getElementById('inputVolatility');
-    return Math.max(1, Math.min(5, Number(el ? el.value : 3) || 3));
+  // ===== Prémios ligados ao cofre (como numa slot real: o cofre ainda vazio não paga prémios altos) =====
+  // Teto por jogada: nunca mais de 40% do cofre disponível e, conforme o cofre cresce, abrem-se escalões de prémio.
+  const VAULT_PAYOUT_FRACTION = 0.40;
+  function maxAllowedWin(avail, bet) {
+    let tierMax = 5;                                              // até 5x a aposta: sempre possível (se o cofre cobrir)
+    if (avail >= Math.max(10, 50 * bet))  tierMax = 20;           // prémio médio
+    if (avail >= Math.max(40, 150 * bet)) tierMax = 100;          // prémio alto
+    if (avail >= Math.max(100, 400 * bet)) tierMax = Infinity;    // prémio máximo
+    return Math.min(avail * VAULT_PAYOUT_FRACTION, tierMax * bet);
   }
-  function updateVolatilityDisplay(value) {
-    const level = Math.max(1, Math.min(5, Number(value) || 3));
-    const label = document.getElementById('valVolatility');
-    if (label) label.innerText = VOLATILITY_NAMES[level - 1];
-    refreshProbNote();
-  }
-  function getReservePct() {
-    const el = document.getElementById('inputReserve');
-    return el ? Math.max(0, Math.min(0.5, Number(el.value) / 100 || 0)) : 0;
-  }
-  function getVault() {
-    return totalBetStat * (1 - getReservePct()) - totalPayoutsStat;
-  }
-  function getPrizeVault() {
-    return Math.max(0, prizeVaultBalance - (inFreeSpins ? bonusTotalWinAccumulated : 0));
-  }
-  function teaseChance() {
-    const el = document.getElementById('inputTease');
-    return el ? Math.max(0, Math.min(0.4, Number(el.value) / 100 || 0)) : 0;
-  }
-
-  function evaluateGridDetailed(grid) {
+  // Avalia uma grelha sem tocar no ecrã (mesma lógica de linhas e símbolo expansivo do jogo).
+  function evalGrid(grid) {
     let win = 0;
-    const winningCells = new Set();
     PAYLINES.forEach(line => {
-      let targetSym = null;
-      for (let c = 0; c < 5; c++) {
-        const sym = grid[c][line[c]];
-        if (sym !== '📖') { targetSym = sym; break; }
-      }
-      if (!targetSym) targetSym = '📖';
+      let target = null;
+      for (let c = 0; c < 5; c++) { const s = grid[c][line[c]]; if (s !== '📖') { target = s; break; } }
+      if (!target) target = '📖';
       let count = 0;
-      for (let c = 0; c < 5; c++) {
-        const sym = grid[c][line[c]];
-        if (sym === targetSym || sym === '📖') {
-          count++;
-        } else {
-          break;
-        }
-      }
-      const info = PAY_DATA.find(p => p.icon === targetSym);
-      if (info && info.pays[count]) {
-        win += info.pays[count] * getCoinValue() * getCoinsPerLine();
-        for (let c = 0; c < count; c++) winningCells.add(c + ':' + line[c]);
-      }
+      for (let c = 0; c < 5; c++) { const s = grid[c][line[c]]; if (s === target || s === '📖') count++; else break; }
+      const info = PAY_DATA.find(p => p.icon === target);
+      if (info && info.pays[count]) win += info.pays[count] * getCoinValue() * getCoinsPerLine();
     });
-
-    const expandingReels = [];
     if (inFreeSpins && expandingSymbol) {
-      for (let r = 0; r < 5; r++) if (grid[r].includes(expandingSymbol)) expandingReels.push(r);
+      const n = grid.filter(r => r.includes(expandingSymbol)).length;
       const info = PAY_DATA.find(p => p.icon === expandingSymbol);
-      const minNeeded = info && info.high ? 2 : 3;
-      if (info && expandingReels.length >= minNeeded) {
-        win += (info.pays[expandingReels.length] || 0) * getCoinValue() * getCoinsPerLine() * 10;
-        expandingReels.forEach(r => {
-          for (let row = 0; row < 3; row++) winningCells.add(r + ':' + row);
-        });
-      } else {
-        expandingReels.length = 0;
-      }
+      if (n >= (info.high ? 2 : 3)) win += (info.pays[n] || 0) * getCoinValue() * getCoinsPerLine() * 10;
     }
-    return { win, winningCells, expandingReels };
+    return win;
   }
-  function evalGrid(grid) { return evaluateGridDetailed(grid).win; }
-
-  function simulateCascadeChain(initialGrid, rtp, maxWin = Infinity) {
-    let current = initialGrid.map(reel => reel.slice());
-    let totalWin = 0;
-    const cascades = [];
-    while (true) {
-      const result = evaluateGridDetailed(current);
-      if (result.win <= 0) break;
-      totalWin += result.win;
-      // Se o prémio acumulado já ultrapassa o cofre, rejeita este candidato
-      // antes de calcular/refazer cascatas que nunca poderão ser apresentadas.
-      // Não limita cascatas válidas nem reduz pagamentos: só acelera candidatos inválidos.
-      if (totalWin > maxWin + 1e-9) {
-        return { cascades: [], finalGrid: current, totalWin };
-      }
-      const nextGrid = [];
-      for (let r = 0; r < 5; r++) {
-        const survivors = [];
-        for (let row = 0; row < 3; row++) {
-          if (!result.winningCells.has(r + ':' + row)) survivors.push(current[r][row]);
-        }
-        const refill = [];
-        while (survivors.length + refill.length < 3) {
-          const fresh = generateReelSymbols(rtp, -1);
-          refill.push(fresh[Math.floor(Math.random() * fresh.length)]);
-        }
-        nextGrid.push(refill.concat(survivors).slice(0, 3));
-      }
-      cascades.push({
-        grid: current.map(reel => reel.slice()),
-        winningCells: Array.from(result.winningCells),
-        expandingReels: result.expandingReels.slice(),
-        win: result.win,
-        nextGrid: nextGrid.map(reel => reel.slice())
-      });
-      current = nextGrid;
-    }
-    return { cascades, finalGrid: current, totalWin };
-  }
-
-  function shuffleArray(items) {
-    const out = items.slice();
-    for (let i = out.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [out[i], out[j]] = [out[j], out[i]];
-    }
-    return out;
-  }
-  function makeBonusBuyGrid(scatterCount, rtp) {
-    const reels = shuffleArray([0, 1, 2, 3, 4]).slice(0, scatterCount);
-    const rows = [-1, -1, -1, -1, -1];
-    reels.forEach(r => { rows[r] = Math.floor(Math.random() * 3); });
-    return rows.map(row => generateReelSymbols(rtp, row));
-  }
-  function chooseBonusBuyScatterCount() {
-    const vault = getPrizeVault();
+  // Gera a grelha da jogada: as Pirâmides (Scatter) ficam como sorteados; se o resultado pagar acima do teto do cofre, volta a sortear os restantes símbolos.
+  function planSpinGridBase(rtp) {
     const bet = getTotalBetCash();
-    const canFour = vault >= Math.max(50, bet * 20);
-    const canFive = vault >= Math.max(150, bet * 75);
-    const fiveChance = canFive ? (vault >= Math.max(500, bet * 250) ? 0.15 : 0.10) : 0;
-    const fourChance = canFour ? 0.25 : 0;
-    const roll = Math.random();
-    if (roll < fiveChance) return 5;
-    if (roll < fiveChance + fourChance) return 4;
-    return 3;
-  }
-  function addTease(grid) {
-    const out = grid.map(reel => reel.slice());
-    const rows = out.map(reel => reel.indexOf('📖'));
-    const count = rows.filter(row => row >= 0).length;
-    if (count >= 2 || rows[4] >= 0) return out;
-    const eligible = [0, 1, 2, 3].filter(r => rows[r] < 0);
-    const needed = 2 - count;
-    const chosen = shuffleArray(eligible).slice(0, needed);
-    chosen.forEach(r => { out[r][Math.floor(Math.random() * 3)] = '📖'; });
-    return out;
-  }
-  function chooseTeaseBonus(available, bet, isTease) {
-    if (!isTease || Math.random() >= 0.35) return 0;
-    const choices = shuffleArray([bet, bet * 0.5, bet * 0.25]);
-    return choices.find(value => value > 0 && value <= available + 1e-9) || 0;
-  }
-
-  function planSpinOutcome(rtp, isBonusBuySpin) {
-    const available = getPrizeVault();
-    const forcedScatterCount = isBonusBuySpin ? chooseBonusBuyScatterCount() : 0;
-    let firstGrid = isBonusBuySpin
-      ? makeBonusBuyGrid(forcedScatterCount, rtp)
-      : [0, 1, 2, 3, 4].map(() => generateReelSymbols(rtp));
-
-    if (!isBonusBuySpin && !inFreeSpins && Math.random() < teaseChance()) firstGrid = addTease(firstGrid);
-    const fixedBookRows = firstGrid.map(reel => reel.indexOf('📖'));
-    const isTease = !isBonusBuySpin && !inFreeSpins && fixedBookRows.filter(row => row >= 0).length === 2;
-    const teaseBonus = chooseTeaseBonus(available, getTotalBetCash(), isTease);
-
-    for (let attempt = 0; attempt < 1200; attempt++) {
-      const candidate = attempt === 0
-        ? firstGrid
-        : fixedBookRows.map(row => generateReelSymbols(rtp, row));
-      const cascade = simulateCascadeChain(candidate, rtp, available);
-      const totalWin = cascade.totalWin + teaseBonus;
-      if (totalWin <= available + 1e-9) {
-        return {
-          initialGrid: candidate.map(reel => reel.slice()),
-          cascades: cascade.cascades,
-          finalGrid: cascade.finalGrid,
-          totalWin,
-          teaseBonus,
-          scatterCount: candidate.reduce((n, reel) => n + reel.filter(sym => sym === '📖').length, 0)
-        };
-      }
+    const vault = getVault();
+    const avail = Math.max(0, vault - (inFreeSpins ? bonusTotalWinAccumulated : 0));
+    const cap = maxAllowedWin(avail, bet);
+    let grid = [0,1,2,3,4].map(() => generateReelSymbols(rtp));
+    let w = evalGrid(grid);
+    if (w <= cap + 1e-9) return maybeConsolation(grid, w, rtp, cap, bet);
+    const books = grid.map(s => s.indexOf('📖'));
+    let best = grid, bw = w;
+    for (let i = 0; i < 80; i++) {
+      grid = books.map(b => generateReelSymbols(rtp, b));
+      w = evalGrid(grid);
+      if (w <= cap + 1e-9) return grid;
+      if (w < bw) { best = grid; bw = w; }
     }
-
-    // Resultado de segurança sem prémios: nunca se reduz um prémio já apresentado.
-    if (isBonusBuySpin) {
-      for (let attempt = 0; attempt < 12000; attempt++) {
-        const candidate = fixedBookRows.map(row => generateReelSymbols(rtp, row));
-        const cascade = simulateCascadeChain(candidate, rtp, available);
-        if (cascade.totalWin <= available + 1e-9) {
-          return {
-            initialGrid: candidate.map(reel => reel.slice()),
-            cascades: cascade.cascades,
-            finalGrid: cascade.finalGrid,
-            totalWin: cascade.totalWin,
-            teaseBonus: 0,
-            scatterCount: forcedScatterCount
-          };
-        }
-      }
-      throw new Error('Não foi possível planear um resultado integral para a compra do bónus.');
-    }
-    const safeGrid = [
-      ['A', '🤴', 'Q'], ['J', '10', 'A'], ['🤴', 'Q', 'J'],
-      ['10', 'A', '🤴'], ['Q', 'J', '10']
-    ];
-    return {
-      initialGrid: safeGrid,
-      cascades: [],
-      finalGrid: safeGrid,
-      totalWin: 0,
-      teaseBonus: 0,
-      scatterCount: 0
-    };
+    return best;
   }
+
+  // ===== Prémios pequenos de consolação (sem desanimar o jogador, sempre dentro do teto do cofre) =====
+  let dryStreak = 0;
+  function consolationChance() {
+    const max = Number(document.getElementById('inputSmallWin').value) / 100;
+    return Math.min(max, 0.10 + 0.14 * dryStreak);
+  }
+  function maybeConsolation(grid, w, rtp, cap, bet) {
+    if (inFreeSpins || w > 0 || Math.random() >= consolationChance()) return grid;
+    const lo = bet * 0.5, hi = Math.min(cap, bet * 3);
+    if (hi < lo - 1e-9) return grid;
+    const books = grid.map(s => s.indexOf('📖'));
+    for (let i = 0; i < 60; i++) {
+      const g = books.map(b => generateReelSymbols(rtp, b));
+      const v = evalGrid(g);
+      if (v >= lo - 1e-9 && v <= hi + 1e-9) return g;
+    }
+    return grid;
+  }
+
+
+  // ===== Reserva da slot: % de cada aposta retida, que nunca paga prémios =====
+  function getReservePct() { const el = document.getElementById('inputReserve'); return el ? Number(el.value) / 100 : 0; }
+  function getVault() { return totalBetStat * (1 - getReservePct()) - totalPayoutsStat; }
+
+  // ===== Teases: quase-bónus (exatamente 2 Pirâmides) que nunca ativam o bónus =====
+  function teaseChance() { const el = document.getElementById('inputTease'); return el ? Number(el.value) / 100 : 0; }
+  function applyTease(grid) {
+    if (inFreeSpins || Math.random() >= teaseChance()) return grid;
+    const books = grid.map(s => s.indexOf('📖'));
+    const have = books.filter(i => i >= 0).length;
+    if (have >= 2 || books[4] >= 0) return grid;
+    const need = 2 - have;
+    const reels = [0, 1, 2, 3].filter(i => books[i] < 0).sort(() => Math.random() - 0.5);
+    if (reels.length < need) return grid;
+    const g = grid.map(r => r.slice());
+    for (let k = 0; k < need; k++) g[reels[k]][Math.floor(Math.random() * 3)] = '📖';
+    const cap = maxAllowedWin(Math.max(0, getVault()), getTotalBetCash());
+    return evalGrid(g) <= Math.max(cap, evalGrid(grid)) + 1e-9 ? g : grid;
+  }
+  function planSpinGrid(rtp) { return applyTease(planSpinGridBase(rtp)); }
+
 
   function initGrid() {
     for(let r=0; r<5; r++) {
@@ -1509,7 +1320,7 @@
     const _rp = Number(document.getElementById('inputReserve').value);
     document.getElementById('admReservePct').innerText = _rp;
     document.getElementById('admReserve').innerText = (totalBetStat * _rp / 100).toFixed(2) + ' €';
-    document.getElementById('admPrizeVault').innerText = getPrizeVault().toFixed(2) + ' €';
+    document.getElementById('admPrizeVault').innerText = Math.max(0, getVault()).toFixed(2) + ' €';
     
     let collabShareAmt = Math.max(0, currentVault * (collabPercentage / 100));
     let techShareAmt = Math.max(0, currentVault - collabShareAmt);
@@ -1539,322 +1350,199 @@
     triggerSpin();
   }
 
-  function triggerSpin(isFreeSpinCall = false, isAutoSpinCall = false) {
-    if (isSpinning || bonusAwaitingConfirmation) return;
-    // Fixa a origem desta jogada durante todo o ciclo: uma jogada manual
-    // nunca herda o estado de Auto-Spin de uma jogada anterior.
-    // Impede que um callback antigo do Auto-Spin inicie uma jogada depois de este ter sido parado.
-    if (isAutoSpinCall && (!autoSpinActive || autoSpinCount <= 0)) return;
-    const spinIsAuto = Boolean(isAutoSpinCall && autoSpinActive && !isFreeSpinCall);
-    currentSpinIsAuto = spinIsAuto;
-    currentSpinIsFree = Boolean(inFreeSpins && isFreeSpinCall);
+  function triggerSpin(isFreeSpinCall = false) {
+    if(isSpinning) return;
     clearWinningHighlights();
     const cost = getTotalBetCash();
-    const isBonusBuySpin = bonusBuyPending;
 
-    if (!inFreeSpins && !isFreeSpinCall && !isBonusBuySpin) {
-      if (balance < cost) {
-        alert('Saldo insuficiente! Por favor deposite fundos.');
+    if(!inFreeSpins && !isFreeSpinCall) {
+      if(balance < cost) {
+        alert("Saldo insuficiente! Por favor deposite fundos.");
         if (autoSpinActive) stopAutoSpin();
         return;
       }
       balance -= cost;
       totalBetStat += cost;
-      prizeVaultBalance += cost * (1 - getReservePct());
       updateUI();
     }
 
-    const spinId = ++spinSequenceId;
-    activeSpinId = spinId;
     isSpinning = true;
     bonusBookCount = 0;
     playReelRoll();
     disableBetControls(true);
+    
     if (autoSpinActive) {
-      document.getElementById('spinBtn').classList.add('stop-mode');
+      const spinBtn = document.getElementById('spinBtn');
+      spinBtn.classList.add('stop-mode');
       setSpinFace('stop');
     } else {
       document.getElementById('spinBtn').classList.add('disabled');
     }
 
     if (inFreeSpins) {
-      document.getElementById('statusBanner').innerText = 'FREE SPINS: ' + freeSpinsLeft + ' RESTANTES';
+      document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
     } else {
-      document.getElementById('statusBanner').innerText = 'A RODAR...';
-      document.getElementById('winDisplay').innerText = '0.00 €';
+      document.getElementById('statusBanner').innerText = "A RODAR...";
+      document.getElementById('winDisplay').innerText = "0.00 €";
     }
 
-    const rtp = Math.min(100, parseInt(document.getElementById('inputRtp').value, 10) || 96);
-    // A animação começa imediatamente. O motor calcula o resultado durante estes 2 segundos.
+    let spinsDone = 0, totalScatters = 0;
+    const rtp = parseInt(document.getElementById('inputRtp').value);
+    const delayStep = isTurbo ? 60 : 130;
+    const plannedGrid = planSpinGrid(rtp);
+
+    const startAt = []; let tAcc = 0, booksSeen = 0;
     for (let r = 0; r < 5; r++) {
-      const reelEl = document.getElementById('reel-' + r);
-      const strip = document.getElementById('strip-' + r);
-      reelEl.classList.remove('anticipate', 'cascading');
-      reelEl.classList.add('rolling');
-      strip.innerHTML = '';
-      for (let n = 0; n < 9; n++) {
-        const sample = generateReelSymbols(rtp, -1);
-        const sym = sample[Math.floor(Math.random() * sample.length)];
-        const cell = document.createElement('div');
-        cell.className = 'symbol';
-        cell.innerHTML = symHTML(sym);
-        cell.dataset.sym = sym;
-        strip.appendChild(cell);
-      }
+      if (r > 0 && booksSeen >= 2) tAcc += isTurbo ? 260 : 700;   // com 2 Pirâmides à vista, os tambores seguintes demoram mais
+      startAt[r] = r * delayStep + tAcc;
+      if (plannedGrid[r].includes('📖')) booksSeen++;
     }
-    const spinStartedAt = performance.now();
-    // Dá oportunidade ao browser de pintar a rolagem antes do cálculo do resultado.
-    // O motor processa todos os parâmetros enquanto a animação decorre; o resultado
-    // nunca é revelado antes de completar 2 segundos desde o clique.
-    setTimeout(() => {
-      if (activeSpinId !== spinId || !isSpinning) return;
-      let plan;
-      try {
-        plan = planSpinOutcome(rtp, isBonusBuySpin);
-      } catch (error) {
-        console.error('Falha ao preparar o giro:', error);
-        bonusBuyPending = false;
-        if (activeSpinId === spinId) activeSpinId = 0;
-        isSpinning = false;
-        paidWinChainActive = false;
-        if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
-        disableBetControls(false);
-        for (let r = 0; r < 5; r++) {
-          const reelEl = document.getElementById('reel-' + r);
-          reelEl.classList.remove('rolling', 'anticipate', 'cascading');
-        }
-        const spinBtn = document.getElementById('spinBtn');
-        spinBtn.classList.remove('disabled', 'stop-mode');
-        setSpinFace('play');
-        document.getElementById('statusBanner').innerText = 'NÃO FOI POSSÍVEL PREPARAR O GIRO — TENTE NOVAMENTE';
-        updateUI();
-        if (autoSpinActive) stopAutoSpin();
-        return;
+    for(let r=0; r<5; r++) {
+      const waitExtra = r > 0 ? (startAt[r] - startAt[r-1] - delayStep) : 0;
+      if (waitExtra > 0) {
+        setTimeout(() => { document.getElementById(`reel-${r}`).classList.add('anticipate'); document.getElementById(`strip-${r}`).innerHTML = ''; tone(392 + r * 60, .55, 'sine', .05); }, startAt[r] - waitExtra);
       }
-      bonusBuyPending = false;
-      const plannedGrid = plan.initialGrid;
-      const totalScatters = plan.scatterCount;
-      let stoppedReels = 0;
-      let stoppedScatters = 0;
-      let teaseMode = false;
-      let stopSequenceFinished = false;
-
-      const revealOneReel = (r) => {
-        if (activeSpinId !== spinId || !isSpinning) return;
-        const reelEl = document.getElementById('reel-' + r);
-        const strip = document.getElementById('strip-' + r);
-        reelEl.classList.remove('rolling', 'anticipate');
+      setTimeout(() => {
+        const reelEl = document.getElementById(`reel-${r}`);
+        reelEl.classList.remove('anticipate');
+        const stripEl = document.getElementById(`strip-${r}`);
         reelEl.classList.add('cascading');
-        strip.innerHTML = '';
-        gridState[r] = plannedGrid[r].slice();
-        plannedGrid[r].forEach(sym => {
-          const cell = document.createElement('div');
-          cell.className = 'symbol';
-          if (sym === '📖') {
-            cell.classList.add('book-glow');
+        stripEl.innerHTML = '';
+
+        const reelSyms = plannedGrid[r];
+        gridState[r] = reelSyms;
+
+        reelSyms.forEach(sym => {
+          const div = document.createElement('div');
+          div.className = 'symbol';
+          if(sym === '📖') {
+            totalScatters++;
             bonusBookCount++;
+            div.classList.add('book-glow');
             playBookCue(bonusBookCount);
           }
-          cell.innerHTML = symHTML(sym);
-          cell.dataset.sym = sym;
-          strip.appendChild(cell);
+          div.innerHTML = symHTML(sym); div.dataset.sym = sym;
+          stripEl.appendChild(div);
         });
-        playReelStop(r);
+
         setTimeout(() => reelEl.classList.remove('cascading'), isTurbo ? 180 : 350);
-        stoppedReels++;
-        stoppedScatters += plannedGrid[r].filter(sym => sym === '📖').length;
-      };
-
-      const finishStopSequence = () => {
-        if (activeSpinId !== spinId || !isSpinning || stopSequenceFinished) return;
-        stopSequenceFinished = true;
-        // Se o terceiro scatter aparecer, revela imediatamente os tambores restantes.
-        for (let r = stoppedReels; r < 5; r++) revealOneReel(r);
-        setTimeout(() => {
-          if (activeSpinId === spinId && isSpinning) playPlannedCascades(plan, totalScatters, spinId, spinIsAuto);
-        }, isTurbo ? 120 : 220);
-      };
-
-      const stopNextReel = (r) => {
-        if (activeSpinId !== spinId || !isSpinning) return;
-        if (stopSequenceFinished || r >= 5) {
-          finishStopSequence();
-          return;
+        playReelStop(r);
+        spinsDone++;
+        if(spinsDone === 5) {
+          setTimeout(() => finishSpin(totalScatters), isTurbo ? 150 : 250);
         }
-        revealOneReel(r);
-
-        // A partir do momento em que já foram revelados dois scatters,
-        // cada tambor seguinte demora 1 segundo adicional a parar.
-        if (stoppedScatters >= 2) teaseMode = true;
-
-        // Assim que aparece o terceiro scatter, todos os tambores restantes param.
-        if (stoppedScatters >= 3) {
-          finishStopSequence();
-          return;
-        }
-
-        if (r === 4) {
-          finishStopSequence();
-          return;
-        }
-
-        const delay = teaseMode && r >= 1 ? 1000 : (isTurbo ? 180 : 320);
-        setTimeout(() => stopNextReel(r + 1), delay);
-      };
-
-      const remainingSpinTime = Math.max(0, 2000 - (performance.now() - spinStartedAt));
-      setTimeout(() => stopNextReel(0), remainingSpinTime);
-    }, 0);
-  }
-  function renderSpinGrid(grid, winningCells) {
-    gridState = grid.map(reel => reel.slice());
-    const expandInfo = evaluateGridDetailed(grid);
-    const expandSet = new Set(expandInfo.expandingReels || []);
-    for (let r = 0; r < 5; r++) {
-      const strip = document.getElementById('strip-' + r);
-      strip.innerHTML = '';
-      for (let row = 0; row < 3; row++) {
-        const sym = grid[r][row];
-        const displaySym = expandSet.has(r) ? expandingSymbol : sym;
-        const cell = document.createElement('div');
-        cell.className = 'symbol';
-        if (sym === '📖') cell.classList.add('book-glow');
-        if (expandSet.has(r)) cell.classList.add('expanded');
-        if (winningCells && winningCells.includes(r + ':' + row)) cell.classList.add('winning');
-        cell.innerHTML = symHTML(displaySym);
-        cell.dataset.sym = sym;
-        strip.appendChild(cell);
-      }
+      }, startAt[r]);
     }
   }
 
-  function playPlannedCascades(plan, scatters, spinId, spinIsAuto = false) {
-    if (activeSpinId !== spinId || !isSpinning) return;
-    const steps = plan.cascades || [];
-    let index = 0;
-    let shownWin = 0;
-    function nextCascade() {
-      if (activeSpinId !== spinId || !isSpinning) return;
-      if (index >= steps.length) {
-        // Mantém visível a última combinação premiada, incluindo todas as linhas
-        // vencedoras dessa etapa, até à próxima jogada começar.
-        const lastWinningStep = steps[steps.length - 1];
-        if (lastWinningStep) renderSpinGrid(lastWinningStep.grid, lastWinningStep.winningCells);
-        else renderSpinGrid(plan.finalGrid, []);
-        setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0, spinId, spinIsAuto), isTurbo ? 60 : 140);
-        return;
-      }
-      const step = steps[index];
-      renderSpinGrid(step.grid, step.winningCells);
-      shownWin += step.win;
-      const displayWin = (inFreeSpins ? bonusTotalWinAccumulated : 0) + shownWin + plan.teaseBonus;
-      document.getElementById('winDisplay').innerText = displayWin.toFixed(2) + ' €';
-      setTimeout(() => {
-        for (let r = 0; r < 5; r++) {
-          const reel = document.getElementById('reel-' + r);
-          reel.classList.add('cascading');
-        }
-        renderSpinGrid(step.nextGrid, []);
-        setTimeout(() => {
-          for (let r = 0; r < 5; r++) document.getElementById('reel-' + r).classList.remove('cascading');
-          index++;
-          setTimeout(nextCascade, isTurbo ? 70 : 150);
-        }, isTurbo ? 170 : 340);
-      }, isTurbo ? 230 : 460);
+  function checkAndExpandSymbols() {
+    if(!inFreeSpins || !expandingSymbol) return 0;
+    let reelsWithExp = [];
+    for(let r=0; r<5; r++) {
+      if(gridState[r].includes(expandingSymbol)) reelsWithExp.push(r);
     }
-    if (!steps.length) {
-      renderSpinGrid(plan.finalGrid, []);
-      setTimeout(() => finishSpin(scatters, plan.totalWin, false, spinId, spinIsAuto), isTurbo ? 60 : 140);
-    } else {
-      nextCascade();
+    const isHigh = PAY_DATA.find(p => p.icon === expandingSymbol)?.high;
+    const minNeeded = isHigh ? 2 : 3;
+
+    if(reelsWithExp.length >= minNeeded) {
+      reelsWithExp.forEach(r => {
+        const strip = document.getElementById(`strip-${r}`);
+        strip.querySelectorAll('.symbol').forEach(s => {
+          s.innerHTML = symHTML(expandingSymbol);
+          s.classList.add('expanded');
+          s.classList.add('winning');
+        });
+      });
+      const mult = PAY_DATA.find(p => p.icon === expandingSymbol).pays[reelsWithExp.length] || 0;
+      return mult * getCoinValue() * getCoinsPerLine() * 10;
     }
+    return 0;
   }
 
-  function advanceAutoSpinAfterPaidSpin() {
-    if (!autoSpinActive) return;
-    autoSpinCount = Math.max(0, autoSpinCount - 1);
-    updateAutoSpinButton();
-    if (autoSpinCount <= 0) {
-      stopAutoSpin();
-    } else {
-      if (autoSpinTimer) clearTimeout(autoSpinTimer);
-      autoSpinTimer = setTimeout(() => {
-        autoSpinTimer = null;
-        if (autoSpinActive && autoSpinCount > 0 && !isSpinning && !inFreeSpins) triggerSpin(false, true);
-      }, isTurbo ? 400 : 800);
-    }
-  }
-
-  function finishSpin(scatters, totalSpinWin, hasWinningLine = totalSpinWin > 0, spinId = activeSpinId, spinIsAuto = false) {
-    // Só o callback pertencente ao giro ativo pode liquidar e concluir essa jogada.
-    if (!spinId || activeSpinId !== spinId || lastFinishedSpinId === spinId) return;
-    lastFinishedSpinId = spinId;
-    activeSpinId = 0;
+  function finishSpin(scatters) {
     isSpinning = false;
-    const wasFreeSpin = currentSpinIsFree;
-    const wasAutoSpin = Boolean(spinIsAuto);
-    currentSpinIsFree = false;
-    currentSpinIsAuto = false;
+    let baseWin = 0;
 
-    // Desbloqueio imediato do botão no jogo normal assim que a sequência dos
-    // tambores termina. Não depende da liquidação, do popup ou de updateUI().
-    // Bónus, Free Spins e Auto-Spin mantêm os respetivos controlos.
-    if (!wasFreeSpin && scatters < 3 && (!wasAutoSpin || !autoSpinActive) && !bonusAwaitingConfirmation) {
-      const playButton = document.getElementById('spinBtn');
-      playButton.classList.remove('disabled', 'stop-mode');
-      setSpinFace('play');
-      document.getElementById('statusBanner').innerText = 'JOGADA TERMINADA — CARREGA EM JOGAR';
-      disableBetControls(false);
-    }
-
-    totalSpinWin = Math.max(0, Number(totalSpinWin) || 0);
-    const availableVault = getPrizeVault();
-    if (totalSpinWin > availableVault + 1e-7) {
-      console.error('Resultado planeado excede o cofre disponível; pagamento bloqueado para proteger o saldo.', totalSpinWin, availableVault);
-      document.getElementById('statusBanner').innerText = 'ERRO DE PLANEAMENTO — GIRO NÃO LIQUIDADO';
-      disableBetControls(false);
-      document.getElementById('spinBtn').classList.remove('disabled', 'stop-mode');
-      setSpinFace('play');
-      if (autoSpinActive) stopAutoSpin();
-      return;
-    }
-
-    if (scatters >= 3) {
-      if (!inFreeSpins) {
-        paidWinChainActive = false;
-        if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
-        if (totalSpinWin > 0) {
-          balance += totalSpinWin;
-          prizeVaultBalance = Math.max(0, prizeVaultBalance - totalSpinWin);
-          totalPayoutsStat += totalSpinWin;
-          document.getElementById('winDisplay').innerText = totalSpinWin.toFixed(2) + ' €';
-          showWinPopup(totalSpinWin);
+    PAYLINES.forEach((line) => {
+      let targetSym = null;
+      for (let col = 0; col < 5; col++) {
+        let sym = gridState[col][line[col]];
+        if (sym !== '📖') {
+          targetSym = sym;
+          break;
         }
-        // Interrompe qualquer sequência automática: o utilizador tem de ver
-        // o símbolo expansível e confirmar antes de começar os Free Spins.
-        if (autoSpinActive) stopAutoSpin();
-        bonusAwaitingConfirmation = true;
+      }
+      if (!targetSym) targetSym = '📖';
+
+      let count = 0;
+      let winningReelsIndices = [];
+
+      for (let col = 0; col < 5; col++) {
+        let sym = gridState[col][line[col]];
+        if (sym === targetSym || sym === '📖') {
+          count++;
+          winningReelsIndices.push(col);
+        } else {
+          break;
+        }
+      }
+
+      const payInfo = PAY_DATA.find(p => p.icon === targetSym);
+      if (payInfo && payInfo.pays[count]) {
+        baseWin += payInfo.pays[count] * getCoinValue() * getCoinsPerLine();
+        
+        winningReelsIndices.forEach(colIndex => {
+          const rowIndex = line[colIndex];
+          const reelStrip = document.getElementById(`strip-${colIndex}`);
+          const symbolDivs = reelStrip.querySelectorAll('.symbol');
+          if (symbolDivs[rowIndex]) {
+            symbolDivs[rowIndex].classList.add('winning');
+          }
+        });
+      }
+    });
+
+    let expandWin = checkAndExpandSymbols();
+    let totalSpinWin = baseWin + expandWin;
+
+    // TETO MÁXIMO DO COFRE: NUNCA PAGA ACIMA DO LUCRO RETIDO
+    let currentVault = getVault();
+    const alreadyReserved = inFreeSpins ? bonusTotalWinAccumulated : 0;
+    const availableVault = Math.max(0, currentVault - alreadyReserved);
+    if (totalSpinWin > availableVault) {
+      totalSpinWin = availableVault;
+    }
+    totalSpinWin = Math.min(totalSpinWin, maxAllowedWin(availableVault, getTotalBetCash()));
+
+    if(scatters >= 3) {
+      if (!inFreeSpins) {
+        // O prémio normal desta jogada não pode desaparecer por activar o bónus.
+        if (totalSpinWin > 0) {
+          const payable = Math.min(totalSpinWin, Math.max(0, getVault()));
+          balance += payable;
+          totalPayoutsStat += payable;
+          document.getElementById('winDisplay').innerText = payable.toFixed(2) + ' €';
+          showWinPopup(payable);
+        }
+        if (autoSpinActive) autoSpinCount = Math.max(0, autoSpinCount - 1);
         updateUI();
-        // Mantém aposta e botão bloqueados até o utilizador confirmar o símbolo expansível.
-        disableBetControls(true);
-        document.getElementById('spinBtn').classList.add('disabled');
-        pendingBonusSpins = scatters >= 5 ? 12 : (scatters === 4 ? 10 : 8);
-        openBonusRoulette(scatters);
-      } else if (wasFreeSpin) {
-        const extraSpins = scatters >= 5 ? 12 : (scatters === 4 ? 10 : 8);
+        disableBetControls(false);
+        document.getElementById('spinBtn').classList.remove('disabled');
+        openBonusRoulette();
+      } else {
+        const extraSpins = scatters === 3 ? 8 : (scatters === 4 ? 10 : 12);
         freeSpinsLeft += extraSpins;
-        document.getElementById('statusBanner').innerText = 'RE-TRIGGER! +' + extraSpins + ' SPINS!';
-        processFreeSpinStep(totalSpinWin, true);
+        document.getElementById('statusBanner').innerText = `RE-TRIGGER! +${extraSpins} SPINS!`;
+        processFreeSpinStep(totalSpinWin);
       }
       return;
     }
 
-    if (wasFreeSpin) {
-      processFreeSpinStep(totalSpinWin, false);
+    if(inFreeSpins) {
+      processFreeSpinStep(totalSpinWin);
     } else {
-      if (totalSpinWin > 0) {
+      if(totalSpinWin > 0) {
         balance += totalSpinWin;
-        prizeVaultBalance = Math.max(0, prizeVaultBalance - totalSpinWin);
         totalPayoutsStat += totalSpinWin;
       }
       dryStreak = totalSpinWin > 0 ? 0 : dryStreak + 1;
@@ -1862,59 +1550,50 @@
       if (totalSpinWin > 0) showWinPopup(totalSpinWin);
       updateUI();
 
-      if (wasAutoSpin && autoSpinActive) {
-        // Só uma jogada explicitamente iniciada pelo Auto-Spin pode agendar outra.
-        disableBetControls(false);
-        advanceAutoSpinAfterPaidSpin();
-      } else {
-        // O botão já foi desbloqueado no início de finishSpin; reafirma o estado
-        // depois da liquidação e garante que nenhuma cadeia antiga o bloqueia.
-        paidWinChainActive = false;
-        if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
-        disableBetControls(false);
-        const spinBtn = document.getElementById('spinBtn');
-        spinBtn.classList.remove('disabled', 'stop-mode');
-        setSpinFace('play');
-        document.getElementById('statusBanner').innerText = totalSpinWin > 0
-          ? 'GANHASTE ' + totalSpinWin.toFixed(2) + '€! CARREGA EM JOGAR PARA CONTINUAR'
-          : 'PRESSIONE JOGAR PARA COMEÇAR';
+      disableBetControls(false);
+      const spinBtn = document.getElementById('spinBtn');
+      spinBtn.classList.remove('disabled', 'stop-mode');
+      setSpinFace('play');
+      document.getElementById('statusBanner').innerText = totalSpinWin > 0 ? `GANHASTE ${totalSpinWin.toFixed(2)}€!` : "PRESSIONE JOGAR PARA COMEÇAR";
+
+      if (autoSpinActive) {
+        autoSpinCount--;
+        if (autoSpinCount <= 0) {
+          stopAutoSpin();
+        } else {
+          setTimeout(() => triggerSpin(), isTurbo ? 400 : 800);
+        }
       }
     }
   }
 
-  function processFreeSpinStep(totalSpinWin, hasRetrigger = false) {
+  function processFreeSpinStep(totalSpinWin) {
     if (totalSpinWin > 0) showWinPopup(totalSpinWin);
     freeSpinsLeft = Math.max(0, freeSpinsLeft - 1);
-
-    // Todas as Free Spins atribuídas são executadas, mesmo sem prémio.
-    // Um re-trigger acrescenta 8, 10 ou 12 spins antes de descontar esta jogada.
+    
+    // ACCUMULATION PROGRESSIVA REAL
     bonusTotalWinAccumulated += totalSpinWin;
     document.getElementById('winDisplay').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
 
-    if (freeSpinsLeft > 0) {
+    // FIM LIMPO E RIGOROSO EXATAMENTE NO ZERO
+    if(freeSpinsLeft > 0) {
       document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
-      if (freeSpinTimer) clearTimeout(freeSpinTimer);
-      freeSpinTimer = setTimeout(() => {
-        freeSpinTimer = null;
-        if (inFreeSpins && freeSpinsLeft > 0 && !bonusAwaitingConfirmation) triggerSpin(true);
-      }, isTurbo ? 1400 : 1600);
-      return;
+      setTimeout(() => triggerSpin(true), isTurbo ? 600 : 1200);
+    } else {
+      balance += bonusTotalWinAccumulated;
+      totalPayoutsStat += bonusTotalWinAccumulated;
+      updateUI();
+
+      document.getElementById('statusBanner').innerText = "BÓNUS ENCERRADO";
+      document.getElementById('celebrationTotalWin').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
+      // A celebração é uma janela de fim de bónus e tem de abrir mesmo com inFreeSpins=true.
+      document.getElementById('bonus-celebration-modal').classList.add('active');
+      bonusClosePending = true;
+      playBonusEnd();
     }
-
-    if (freeSpinTimer) { clearTimeout(freeSpinTimer); freeSpinTimer = null; }
-    balance += bonusTotalWinAccumulated;
-    prizeVaultBalance = Math.max(0, prizeVaultBalance - bonusTotalWinAccumulated);
-    totalPayoutsStat += bonusTotalWinAccumulated;
-    updateUI();
-
-    document.getElementById('statusBanner').innerText = "BÓNUS ENCERRADO";
-    document.getElementById('celebrationTotalWin').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
-    document.getElementById('bonus-celebration-modal').classList.add('active');
-    bonusClosePending = true;
-    playBonusEnd();
   }
 
-  function openBonusRoulette(scatterCount) {
+  function openBonusRoulette() {
     const modal = document.getElementById('bonus-roulette-modal');
     const display = document.getElementById('rouletteDisplaySymbol');
     const msg = document.getElementById('rouletteMsg');
@@ -1922,8 +1601,7 @@
     if (rouletteTimer) { clearTimeout(rouletteTimer); rouletteTimer = null; }
     confirmBtn.style.display = 'none';
     display.classList.remove('picked');
-    pendingBonusSpins = scatterCount >= 5 ? 12 : (scatterCount === 4 ? 10 : 8);
-    msg.innerText = 'Parabéns, tem ' + pendingBonusSpins + ' spins grátis! A sortear o símbolo expansível...';
+    msg.innerText = 'Parabéns, tem 8 spins grátis! A sortear o símbolo expansível...';
     modal.classList.add('active');
     playBonusStart();
 
@@ -1936,7 +1614,7 @@
       if (el >= TOTAL) {
         rouletteTimer = null; expandingSymbol = chosen;
         display.innerHTML = symHTML(chosen); display.classList.add('picked');
-        msg.innerText = 'Parabéns, tem ' + pendingBonusSpins + ' spins grátis e o seu símbolo expansível é:';
+        msg.innerText = 'Parabéns, tem 8 spins grátis e o seu símbolo expansível é:';
         tone(784, .25, 'triangle', .06); tone(1047, .45, 'triangle', .06, .12);
         confirmBtn.style.display = 'block';
         return;
@@ -1950,13 +1628,9 @@
   }
 
   function startBonusWithSymbol() {
-    if (!bonusAwaitingConfirmation || !expandingSymbol) return;
-    paidWinChainActive = false;
-    if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
     closeModal('bonus-roulette-modal');
-    bonusAwaitingConfirmation = false;
     inFreeSpins = true;
-    freeSpinsLeft = pendingBonusSpins;
+    freeSpinsLeft = 8;
     bonusTotalWinAccumulated = 0;
     
     document.getElementById('expSymbolIcon').innerHTML = symHTML(expandingSymbol);
@@ -1967,12 +1641,7 @@
 
   function closeBonusCelebration() {
     closeModal('bonus-celebration-modal');
-    if (freeSpinTimer) { clearTimeout(freeSpinTimer); freeSpinTimer = null; }
     inFreeSpins = false;
-    currentSpinIsFree = false;
-    freeSpinsLeft = 0;
-    bonusTotalWinAccumulated = 0;
-    bonusAwaitingConfirmation = false;
     expandingSymbol = '';
     document.getElementById('expandingSymbolBanner').style.display = 'none';
     disableBetControls(false);
@@ -1984,11 +1653,7 @@
     updateUI();
 
     if (autoSpinActive && autoSpinCount > 0) {
-      if (autoSpinTimer) clearTimeout(autoSpinTimer);
-      autoSpinTimer = setTimeout(() => {
-        autoSpinTimer = null;
-        if (autoSpinActive && autoSpinCount > 0 && !isSpinning && !inFreeSpins) triggerSpin(false, true);
-      }, isTurbo ? 350 : 700);
+      setTimeout(() => triggerSpin(), isTurbo ? 350 : 700);
     } else if (autoSpinActive) {
       stopAutoSpin();
     }
@@ -2015,28 +1680,15 @@
     document.querySelectorAll('.autospin-option').forEach(opt => opt.classList.remove('selected'));
     el.classList.add('selected');
   }
-  function updateAutoSpinButton() {
-    const btn = document.getElementById('autoBtn');
-    if (!btn) return;
-    btn.classList.toggle('active-count', autoSpinActive);
-    btn.innerHTML = autoSpinActive ? '<b>' + autoSpinCount + '</b>' : '<b>AUTO</b><b>SPIN</b>';
-  }
-  function handleAutoSpinButton() {
-    if (autoSpinActive) stopAutoSpin();
-    else openAutoSpinModal();
-  }
   function confirmStartAutoSpin() {
     autoSpinCount = selectedAutoSpinsOption;
     autoSpinActive = true;
-    updateAutoSpinButton();
     closeModal('autospin-modal');
-    triggerSpin(false, true);
+    triggerSpin();
   }
   function stopAutoSpin() {
-    if (autoSpinTimer) { clearTimeout(autoSpinTimer); autoSpinTimer = null; }
     autoSpinActive = false;
     autoSpinCount = 0;
-    updateAutoSpinButton();
     const spinBtn = document.getElementById('spinBtn');
     spinBtn.classList.remove('stop-mode', 'disabled');
     setSpinFace('play');
@@ -2112,11 +1764,9 @@
     if(balance < cost) { alert("Saldo insuficiente!"); return; }
     balance -= cost;
     totalBetStat += cost;
-    prizeVaultBalance += cost * (1 - getReservePct());
     updateUI();
     closeModal('bonusbuy-modal');
-    bonusBuyPending = true;
-    triggerSpin();
+    openBonusRoulette();
   }
 
   function switchTab(tabId, clickedButton) {
@@ -2165,11 +1815,9 @@
     if (!el) return;
     const b = Number(document.getElementById('inputBonusProb').value);
     const r = Number(document.getElementById('inputRetriggerProb').value);
-    const gross = totalBetStat - totalPayoutsStat;
-    const prizeVault = getPrizeVault();
-    const gate = prizeVault >= VAULT_MIN_FOR_BOOKS;
-    const vol = VOLATILITY_NAMES[getVolatilityLevel() - 1];
-    el.innerHTML = '<b>Valores usados pelo motor</b><br>• Jogo normal: ' + b + '% de Pirâmide por tambor → Bónus em ' + (bonusOdds(b).pr * 100).toFixed(2) + '% dos giros.<br>• Free Spins: ' + r + '% por tambor → Re-trigger em ' + (bonusOdds(r).pr * 100).toFixed(2) + '% dos giros.<br>• RTP máximo configurável: 100%.<br>• Volatilidade: <b>' + vol + '</b>.<br>• Reserva: ' + (getReservePct() * 100).toFixed(0) + '%; cofre bruto: ' + gross.toFixed(2) + ' €; cofre disponível para prémios: <b>' + prizeVault.toFixed(2) + ' €</b>.<br>• Pirâmides normais: ' + (gate ? 'ATIVAS' : 'INATIVAS') + ' (limiar ' + VAULT_MIN_FOR_BOOKS.toFixed(2) + ' €).<br>• O motor planeia as cascatas completas antes de mostrar o giro e só aceita prémios integrais que caibam no cofre.';
+    const vault = getVault();
+    const gate = vault >= VAULT_MIN_FOR_BOOKS;
+    el.innerHTML = `<b>Valores usados pelo motor</b><br>• Jogo normal: ${b}% de Pirâmide por tambor → Bónus (3+ Pirâmides) em ${(bonusOdds(b).pr * 100).toFixed(2)}% dos spins (≈ 1 em ${bonusOdds(b).n}).<br>• Free Spins: ${r}% por tambor → Re-trigger em ${(bonusOdds(r).pr * 100).toFixed(2)}% dos spins (≈ 1 em ${bonusOdds(r).n}).<br>• Pirâmides só surgem com cofre ≥ ${VAULT_MIN_FOR_BOOKS.toFixed(2)} €: <b>${gate ? 'ATIVO' : 'INATIVO'}</b> (cofre ${vault.toFixed(2)} €).<br>• Prémios por jogada: máx. ${(VAULT_PAYOUT_FRACTION*100)}% do cofre; escalões — até 5× a aposta sempre; até 20× com cofre ≥ 10 € (e ≥ 50× aposta); até 100× com cofre ≥ 40 € (≥ 150× aposta); acima disso com cofre ≥ 100 € (≥ 400× aposta). <br>• Consolação: após jogadas sem prémio, a chance de um prémio pequeno (0,5× a 3× a aposta, dentro do cofre) sobe até ${document.getElementById('inputSmallWin').value}%.<br>• Agora: máx. ${maxAllowedWin(Math.max(0,vault), getTotalBetCash()).toFixed(2)} € por jogada.`;
   }
 
   function updateSmallWinDisplay(val) {
@@ -2179,7 +1827,7 @@
 
 
   const MASTER_PASS = 'after';
-  const CFG_IDS = ['inputRtp', 'inputVolatility', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease'];
+  const CFG_IDS = ['inputRtp', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease'];
   function setCfgLocked(locked) {
     CFG_IDS.forEach(function (id) { document.getElementById(id).disabled = locked; });
     document.getElementById('cfgLockStatus').innerText = locked ? '🔒 Configurações bloqueadas — apenas o técnico pode alterar' : '🔓 Configurações desbloqueadas pelo técnico';
@@ -2203,23 +1851,6 @@
     updateUI();
     alert('Contador zerado.');
   }
-  function depositPrizeVault() {
-    if (document.getElementById('inputRtp').disabled) {
-      alert('Desbloqueie primeiro as configurações com a password do técnico.');
-      return;
-    }
-    const input = document.getElementById('prizeVaultDepositInput');
-    const amount = Number(input && input.value);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      alert('Introduza um valor válido, superior a 0,00 €.');
-      return;
-    }
-    prizeVaultBalance += amount;
-    input.value = '';
-    updateUI();
-    alert('Cofre de prémios reforçado em ' + amount.toFixed(2) + ' €.');
-  }
-
   function updateReserveDisplay(v) { document.getElementById('valReserve').innerText = v + '%'; updateUI(); }
   function updateTeaseDisplay(v) { document.getElementById('valTease').innerText = v + '%'; }
 
@@ -2286,8 +1917,6 @@
   soundFace();
   syncBetBoxes();
   lockCfg(true);
-  updateVolatilityDisplay(document.getElementById('inputVolatility').value);
-  updateAutoSpinButton();
   updateTeaseDisplay(document.getElementById('inputTease').value);
   updateReserveDisplay(document.getElementById('inputReserve').value);
   updateSmallWinDisplay(document.getElementById('inputSmallWin').value);
