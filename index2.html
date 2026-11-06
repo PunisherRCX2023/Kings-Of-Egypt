@@ -1721,8 +1721,9 @@
         if (autoSpinActive) stopAutoSpin();
         bonusAwaitingConfirmation = true;
         updateUI();
-        disableBetControls(false);
-        document.getElementById('spinBtn').classList.remove('disabled');
+        // Mantém aposta e botão bloqueados até o utilizador confirmar o símbolo expansível.
+        disableBetControls(true);
+        document.getElementById('spinBtn').classList.add('disabled');
         pendingBonusSpins = scatters >= 5 ? 12 : (scatters === 4 ? 10 : 8);
         openBonusRoulette(scatters);
       } else if (wasFreeSpin) {
