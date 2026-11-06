@@ -87,6 +87,8 @@
       flex-direction: column; height: 240px; position: relative; overflow: hidden;
     }
     .reel-strip { display: flex; flex-direction: column; position: absolute; width: 100%; top: 0; }
+    .reel.rolling .reel-strip { animation: reelProcessing 0.16s linear infinite; }
+    @keyframes reelProcessing { from { transform: translateY(0); } to { transform: translateY(-240px); } }
     .symbol {
       height: 80px; display: flex; justify-content: center; align-items: center;
       font-size: 38px; box-sizing: border-box; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
@@ -798,6 +800,13 @@
             </div>
             <button class="btn-action" id="lockCfgBtn" style="display:none; background:linear-gradient(180deg, #d32f2f 0%, #8a1c1c 100%); color:#fff;" onclick="lockCfg()">Bloquear Novamente</button>
             <button class="btn-action" id="resetCounterBtn" style="display:none; margin-top:8px;" onclick="resetCounter()">Zerar Contador</button>
+            <div class="form-group" style="margin-top:10px;">
+              <label>Depositar no Cofre de Prémios (€):</label>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="number" id="prizeVaultDepositInput" class="form-control" min="0.01" step="0.01" placeholder="Valor a depositar">
+                <button type="button" class="btn-action" id="depositPrizeVaultBtn" style="margin-top:0; white-space:nowrap;" onclick="depositPrizeVault()">Depositar Cofre</button>
+              </div>
+            </div>
           </div>
           <div class="slider-container">
             <label style="font-size:11px; color:#aaa;">RTP alvo (ajuste de distribuição, longo prazo) (%):</label>
@@ -1076,6 +1085,9 @@
   let totalPayoutsStat = 0.00;
   let totalDepStat = 0.00;
   let totalWithStat = 0.00;
+  // Saldo autónomo do cofre de prémios: alimentado por apostas (líquidas da reserva)
+  // e por depósitos técnicos; os prémios pagos são debitados deste saldo.
+  let prizeVaultBalance = 0.00;
   
   let depositsHistory = [];
   let withdrawalsHistory = [];
@@ -1088,8 +1100,11 @@
   let isSpinning = false;
   let isTurbo = false;
   let inFreeSpins = false;
+  let currentSpinIsFree = false;
   let freeSpinsLeft = 0;
   let bonusTotalWinAccumulated = 0;
+  let bonusAwaitingConfirmation = false;
+  let freeSpinTimer = null;
   let expandingSymbol = '';
   let gridState = [[],[],[],[],[]];
 
@@ -1176,7 +1191,7 @@
     return totalBetStat * (1 - getReservePct()) - totalPayoutsStat;
   }
   function getPrizeVault() {
-    return Math.max(0, getVault() - (inFreeSpins ? bonusTotalWinAccumulated : 0));
+    return Math.max(0, prizeVaultBalance - (inFreeSpins ? bonusTotalWinAccumulated : 0));
   }
   function teaseChance() {
     const el = document.getElementById('inputTease');
@@ -1465,7 +1480,7 @@
     const _rp = Number(document.getElementById('inputReserve').value);
     document.getElementById('admReservePct').innerText = _rp;
     document.getElementById('admReserve').innerText = (totalBetStat * _rp / 100).toFixed(2) + ' €';
-    document.getElementById('admPrizeVault').innerText = Math.max(0, getVault()).toFixed(2) + ' €';
+    document.getElementById('admPrizeVault').innerText = getPrizeVault().toFixed(2) + ' €';
     
     let collabShareAmt = Math.max(0, currentVault * (collabPercentage / 100));
     let techShareAmt = Math.max(0, currentVault - collabShareAmt);
@@ -1496,7 +1511,8 @@
   }
 
   function triggerSpin(isFreeSpinCall = false) {
-    if (isSpinning) return;
+    if (isSpinning || bonusAwaitingConfirmation) return;
+    currentSpinIsFree = Boolean(inFreeSpins && isFreeSpinCall);
     clearWinningHighlights();
     const cost = getTotalBetCash();
     const isBonusBuySpin = bonusBuyPending;
@@ -1509,6 +1525,7 @@
       }
       balance -= cost;
       totalBetStat += cost;
+      prizeVaultBalance += cost * (1 - getReservePct());
       updateUI();
     }
 
@@ -1550,30 +1567,30 @@
     bonusBuyPending = false;
     const plannedGrid = plan.initialGrid;
     const totalScatters = plan.scatterCount;
-    const delayStep = isTurbo ? 60 : 130;
-    let spinsDone = 0;
-    const startAt = [];
-    let tAcc = 0, booksSeen = 0;
+    // Os cinco tambores rodam visualmente durante pelo menos 2 segundos.
+    // O resultado completo já está planeado e só é revelado quando o tempo termina.
     for (let r = 0; r < 5; r++) {
-      if (r > 0 && booksSeen >= 2) tAcc += isTurbo ? 260 : 700;
-      startAt[r] = r * delayStep + tAcc;
-      if (plannedGrid[r].includes('📖')) booksSeen++;
-    }
-
-    for (let r = 0; r < 5; r++) {
-      const waitExtra = r > 0 ? (startAt[r] - startAt[r - 1] - delayStep) : 0;
-      if (waitExtra > 0) {
-        setTimeout(() => {
-          document.getElementById('reel-' + r).classList.add('anticipate');
-          document.getElementById('strip-' + r).innerHTML = '';
-          tone(392 + r * 60, .55, 'sine', .05);
-        }, startAt[r] - waitExtra);
+      const reelEl = document.getElementById('reel-' + r);
+      const strip = document.getElementById('strip-' + r);
+      reelEl.classList.remove('anticipate', 'cascading');
+      reelEl.classList.add('rolling');
+      strip.innerHTML = '';
+      for (let n = 0; n < 9; n++) {
+        const sample = generateReelSymbols(rtp, -1);
+        const sym = sample[Math.floor(Math.random() * sample.length)];
+        const cell = document.createElement('div');
+        cell.className = 'symbol';
+        cell.innerHTML = symHTML(sym);
+        cell.dataset.sym = sym;
+        strip.appendChild(cell);
       }
-      setTimeout(() => {
+    }
+    setTimeout(() => {
+      for (let r = 0; r < 5; r++) {
         const reelEl = document.getElementById('reel-' + r);
-        reelEl.classList.remove('anticipate');
-        reelEl.classList.add('cascading');
         const strip = document.getElementById('strip-' + r);
+        reelEl.classList.remove('rolling', 'anticipate');
+        reelEl.classList.add('cascading');
         strip.innerHTML = '';
         gridState[r] = plannedGrid[r].slice();
         plannedGrid[r].forEach(sym => {
@@ -1588,14 +1605,11 @@
           cell.dataset.sym = sym;
           strip.appendChild(cell);
         });
-        setTimeout(() => reelEl.classList.remove('cascading'), isTurbo ? 180 : 350);
         playReelStop(r);
-        spinsDone++;
-        if (spinsDone === 5) {
-          setTimeout(() => playPlannedCascades(plan, totalScatters), isTurbo ? 150 : 250);
-        }
-      }, startAt[r]);
-    }
+        setTimeout(() => reelEl.classList.remove('cascading'), isTurbo ? 180 : 350);
+      }
+      setTimeout(() => playPlannedCascades(plan, totalScatters), isTurbo ? 120 : 220);
+    }, 2000);
   }
   function renderSpinGrid(grid, winningCells) {
     gridState = grid.map(reel => reel.slice());
@@ -1668,6 +1682,8 @@
 
   function finishSpin(scatters, totalSpinWin) {
     isSpinning = false;
+    const wasFreeSpin = currentSpinIsFree;
+    currentSpinIsFree = false;
     totalSpinWin = Math.max(0, Number(totalSpinWin) || 0);
     const availableVault = getPrizeVault();
     if (totalSpinWin > availableVault + 1e-7) {
@@ -1684,20 +1700,21 @@
       if (!inFreeSpins) {
         if (totalSpinWin > 0) {
           balance += totalSpinWin;
+          prizeVaultBalance = Math.max(0, prizeVaultBalance - totalSpinWin);
           totalPayoutsStat += totalSpinWin;
           document.getElementById('winDisplay').innerText = totalSpinWin.toFixed(2) + ' €';
           showWinPopup(totalSpinWin);
         }
-        if (autoSpinActive) {
-          autoSpinCount = Math.max(0, autoSpinCount - 1);
-          updateAutoSpinButton();
-        }
+        // Interrompe qualquer sequência automática: o utilizador tem de ver
+        // o símbolo expansível e confirmar antes de começar os Free Spins.
+        if (autoSpinActive) stopAutoSpin();
+        bonusAwaitingConfirmation = true;
         updateUI();
         disableBetControls(false);
         document.getElementById('spinBtn').classList.remove('disabled');
         pendingBonusSpins = scatters >= 5 ? 12 : (scatters === 4 ? 10 : 8);
         openBonusRoulette(scatters);
-      } else {
+      } else if (wasFreeSpin) {
         const extraSpins = scatters >= 5 ? 12 : (scatters === 4 ? 10 : 8);
         freeSpinsLeft += extraSpins;
         document.getElementById('statusBanner').innerText = 'RE-TRIGGER! +' + extraSpins + ' SPINS!';
@@ -1706,11 +1723,12 @@
       return;
     }
 
-    if (inFreeSpins) {
+    if (wasFreeSpin) {
       processFreeSpinStep(totalSpinWin);
     } else {
       if (totalSpinWin > 0) {
         balance += totalSpinWin;
+        prizeVaultBalance = Math.max(0, prizeVaultBalance - totalSpinWin);
         totalPayoutsStat += totalSpinWin;
       }
       dryStreak = totalSpinWin > 0 ? 0 : dryStreak + 1;
@@ -1737,9 +1755,14 @@
     // FIM LIMPO E RIGOROSO EXATAMENTE NO ZERO
     if(freeSpinsLeft > 0) {
       document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
-      setTimeout(() => triggerSpin(true), isTurbo ? 600 : 1200);
+      if (freeSpinTimer) clearTimeout(freeSpinTimer);
+      freeSpinTimer = setTimeout(() => {
+        freeSpinTimer = null;
+        if (inFreeSpins && freeSpinsLeft > 0 && !bonusAwaitingConfirmation) triggerSpin(true);
+      }, isTurbo ? 600 : 1200);
     } else {
       balance += bonusTotalWinAccumulated;
+      prizeVaultBalance = Math.max(0, prizeVaultBalance - bonusTotalWinAccumulated);
       totalPayoutsStat += bonusTotalWinAccumulated;
       updateUI();
 
@@ -1788,7 +1811,9 @@
   }
 
   function startBonusWithSymbol() {
+    if (!bonusAwaitingConfirmation || !expandingSymbol) return;
     closeModal('bonus-roulette-modal');
+    bonusAwaitingConfirmation = false;
     inFreeSpins = true;
     freeSpinsLeft = pendingBonusSpins;
     bonusTotalWinAccumulated = 0;
@@ -1801,7 +1826,12 @@
 
   function closeBonusCelebration() {
     closeModal('bonus-celebration-modal');
+    if (freeSpinTimer) { clearTimeout(freeSpinTimer); freeSpinTimer = null; }
     inFreeSpins = false;
+    currentSpinIsFree = false;
+    freeSpinsLeft = 0;
+    bonusTotalWinAccumulated = 0;
+    bonusAwaitingConfirmation = false;
     expandingSymbol = '';
     document.getElementById('expandingSymbolBanner').style.display = 'none';
     disableBetControls(false);
@@ -1936,6 +1966,7 @@
     if(balance < cost) { alert("Saldo insuficiente!"); return; }
     balance -= cost;
     totalBetStat += cost;
+    prizeVaultBalance += cost * (1 - getReservePct());
     updateUI();
     closeModal('bonusbuy-modal');
     bonusBuyPending = true;
@@ -2026,6 +2057,19 @@
     updateUI();
     alert('Contador zerado.');
   }
+  function depositPrizeVault() {
+    const input = document.getElementById('prizeVaultDepositInput');
+    const amount = Number(input && input.value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert('Introduza um valor válido, superior a 0,00 €.');
+      return;
+    }
+    prizeVaultBalance += amount;
+    input.value = '';
+    updateUI();
+    alert('Cofre de prémios reforçado em ' + amount.toFixed(2) + ' €.');
+  }
+
   function updateReserveDisplay(v) { document.getElementById('valReserve').innerText = v + '%'; updateUI(); }
   function updateTeaseDisplay(v) { document.getElementById('valTease').innerText = v + '%'; }
 
