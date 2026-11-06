@@ -149,11 +149,6 @@
       background: linear-gradient(180deg, #2a1f14 0%, #110b06 100%); color: #ffda73;
       font-size: 10px; font-weight: bold; display: flex; flex-direction: column;
       justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.8); text-transform: uppercase;
-      animation: bonusSmoothFade 3s infinite ease-in-out;
-    }
-    @keyframes bonusSmoothFade {
-      0%, 70%, 100% { box-shadow: 0 3px 6px rgba(0,0,0,0.8), 0 0 0 rgba(255,215,0,0); border-color: #d4af37; }
-      85% { box-shadow: 0 3px 12px rgba(255,215,0,0.7), inset 0 0 8px rgba(255,215,0,0.4); border-color: #fff; }
     }
 
     .spin-btn {
@@ -493,6 +488,9 @@
     #loading { position: fixed; top: 0; left: 0; width: 100%; height: var(--app-h); z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; transition: opacity .6s;
       background: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.7)), #0a0604 url(assets/img/background.jpg) center / cover no-repeat; }
     #loading img { width: min(78vw, 380px); height: auto; filter: drop-shadow(0 8px 18px #000); animation: ldFloat 3s ease-in-out infinite; }
+    /* A mesma areia animada do tabuleiro, também no ecrã de loading */
+    #loading .sand-particles { z-index: 8; opacity: .42; }
+    #loading > img, #loading > #ldTxt, #loading > #ldBtn { position: relative; z-index: 9; }
     @keyframes ldFloat { 50% { transform: translateY(-6px); } }
     .ld-bar { width: min(64vw, 300px); height: 12px; border: 2px solid #d9a940; border-radius: 8px; background: #160d05; overflow: hidden; margin: 0 auto; }
     .ld-fill { height: 100%; width: 0; background: linear-gradient(90deg, #e9b73c, #fff1a6); transition: width .2s; }
@@ -518,7 +516,7 @@
 </defs></svg>
 
 <div id="bgfill" aria-hidden="true"></div>
-<div id="loading"><img src="assets/img/loading_title.png" alt="Kings of Egypt"><div id="ldTxt"><div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div><div class="ld-note">A carregar…</div></div><button type="button" id="ldBtn">TOCAR PARA JOGAR</button></div>
+<div id="loading"><div class="sand-particles" aria-hidden="true"></div><img src="assets/img/loading_title.png" alt="Kings of Egypt"><div id="ldTxt"><div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div><div class="ld-note">A carregar…</div></div><button type="button" id="ldBtn">TOCAR PARA JOGAR</button></div>
 <div id="game-container">
   <div class="sand-particles" aria-hidden="true"></div>
   <div class="topbar">
