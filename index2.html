@@ -1739,6 +1739,18 @@
     isSpinning = false;
     const wasFreeSpin = currentSpinIsFree;
     currentSpinIsFree = false;
+
+    // Desbloqueio imediato do botão no jogo normal assim que a sequência dos
+    // tambores termina. Não depende da liquidação, do popup ou de updateUI().
+    // Bónus, Free Spins e Auto-Spin mantêm os respetivos controlos.
+    if (!wasFreeSpin && scatters < 3 && !autoSpinActive && !bonusAwaitingConfirmation) {
+      const playButton = document.getElementById('spinBtn');
+      playButton.classList.remove('disabled', 'stop-mode');
+      setSpinFace('play');
+      document.getElementById('statusBanner').innerText = 'JOGADA TERMINADA — CARREGA EM JOGAR';
+      disableBetControls(false);
+    }
+
     totalSpinWin = Math.max(0, Number(totalSpinWin) || 0);
     const availableVault = getPrizeVault();
     if (totalSpinWin > availableVault + 1e-7) {
@@ -1799,8 +1811,8 @@
         disableBetControls(false);
         advanceAutoSpinAfterPaidSpin();
       } else {
-        // No jogo normal, JOGAR fica disponível assim que os tambores param,
-        // independentemente de ter saído prémio. A próxima jogada exige novo clique.
+        // O botão já foi desbloqueado no início de finishSpin; reafirma o estado
+        // depois da liquidação e garante que nenhuma cadeia antiga o bloqueia.
         paidWinChainActive = false;
         if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
         disableBetControls(false);
