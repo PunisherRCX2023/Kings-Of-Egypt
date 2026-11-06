@@ -1665,7 +1665,10 @@
           document.getElementById('winDisplay').innerText = totalSpinWin.toFixed(2) + ' €';
           showWinPopup(totalSpinWin);
         }
-        advanceAutoSpinAfterPaidSpin();
+        if (autoSpinActive) {
+          autoSpinCount = Math.max(0, autoSpinCount - 1);
+          updateAutoSpinButton();
+        }
         updateUI();
         disableBetControls(false);
         document.getElementById('spinBtn').classList.remove('disabled');
