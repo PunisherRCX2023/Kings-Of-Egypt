@@ -1565,6 +1565,10 @@
         strip.appendChild(cell);
       }
     }
+    const spinStartedAt = performance.now();
+    // Dá oportunidade ao browser de pintar a rolagem antes do cálculo do resultado.
+    // O motor processa todos os parâmetros enquanto a animação decorre; o resultado
+    // nunca é revelado antes de completar 2 segundos desde o clique.
     setTimeout(() => {
       let plan;
       try {
@@ -1589,30 +1593,34 @@
       bonusBuyPending = false;
       const plannedGrid = plan.initialGrid;
       const totalScatters = plan.scatterCount;
-      for (let r = 0; r < 5; r++) {
-        const reelEl = document.getElementById('reel-' + r);
-        const strip = document.getElementById('strip-' + r);
-        reelEl.classList.remove('rolling', 'anticipate');
-        reelEl.classList.add('cascading');
-        strip.innerHTML = '';
-        gridState[r] = plannedGrid[r].slice();
-        plannedGrid[r].forEach(sym => {
-          const cell = document.createElement('div');
-          cell.className = 'symbol';
-          if (sym === '📖') {
-            cell.classList.add('book-glow');
-            bonusBookCount++;
-            playBookCue(bonusBookCount);
-          }
-          cell.innerHTML = symHTML(sym);
-          cell.dataset.sym = sym;
-          strip.appendChild(cell);
-        });
-        playReelStop(r);
-        setTimeout(() => reelEl.classList.remove('cascading'), isTurbo ? 180 : 350);
-      }
-      setTimeout(() => playPlannedCascades(plan, totalScatters), isTurbo ? 120 : 220);
-    }, 2000);
+      const revealResult = () => {
+        for (let r = 0; r < 5; r++) {
+          const reelEl = document.getElementById('reel-' + r);
+          const strip = document.getElementById('strip-' + r);
+          reelEl.classList.remove('rolling', 'anticipate');
+          reelEl.classList.add('cascading');
+          strip.innerHTML = '';
+          gridState[r] = plannedGrid[r].slice();
+          plannedGrid[r].forEach(sym => {
+            const cell = document.createElement('div');
+            cell.className = 'symbol';
+            if (sym === '📖') {
+              cell.classList.add('book-glow');
+              bonusBookCount++;
+              playBookCue(bonusBookCount);
+            }
+            cell.innerHTML = symHTML(sym);
+            cell.dataset.sym = sym;
+            strip.appendChild(cell);
+          });
+          playReelStop(r);
+          setTimeout(() => reelEl.classList.remove('cascading'), isTurbo ? 180 : 350);
+        }
+        setTimeout(() => playPlannedCascades(plan, totalScatters), isTurbo ? 120 : 220);
+      };
+      const remainingSpinTime = Math.max(0, 2000 - (performance.now() - spinStartedAt));
+      setTimeout(revealResult, remainingSpinTime);
+    }, 0);
   }
   function renderSpinGrid(grid, winningCells) {
     gridState = grid.map(reel => reel.slice());
