@@ -1113,6 +1113,7 @@
 
   let autoSpinCount = 0;
   let autoSpinActive = false;
+  let currentSpinIsAuto = false;
   let bonusBuyPending = false;
   let pendingBonusSpins = 8;
   let selectedAutoSpinsOption = 10;
@@ -1513,8 +1514,9 @@
     triggerSpin();
   }
 
-  function triggerSpin(isFreeSpinCall = false) {
+  function triggerSpin(isFreeSpinCall = false, isAutoSpinCall = false) {
     if (isSpinning || bonusAwaitingConfirmation) return;
+    currentSpinIsAuto = Boolean(isAutoSpinCall && autoSpinActive && !isFreeSpinCall);
     currentSpinIsFree = Boolean(inFreeSpins && isFreeSpinCall);
     clearWinningHighlights();
     const cost = getTotalBetCash();
@@ -1731,19 +1733,21 @@
     if (autoSpinCount <= 0) {
       stopAutoSpin();
     } else {
-      setTimeout(() => triggerSpin(), isTurbo ? 400 : 800);
+      setTimeout(() => triggerSpin(false, true), isTurbo ? 400 : 800);
     }
   }
 
   function finishSpin(scatters, totalSpinWin, hasWinningLine = totalSpinWin > 0) {
     isSpinning = false;
     const wasFreeSpin = currentSpinIsFree;
+    const wasAutoSpin = currentSpinIsAuto;
     currentSpinIsFree = false;
+    currentSpinIsAuto = false;
 
     // Desbloqueio imediato do botão no jogo normal assim que a sequência dos
     // tambores termina. Não depende da liquidação, do popup ou de updateUI().
     // Bónus, Free Spins e Auto-Spin mantêm os respetivos controlos.
-    if (!wasFreeSpin && scatters < 3 && !autoSpinActive && !bonusAwaitingConfirmation) {
+    if (!wasFreeSpin && scatters < 3 && (!wasAutoSpin || !autoSpinActive) && !bonusAwaitingConfirmation) {
       const playButton = document.getElementById('spinBtn');
       playButton.classList.remove('disabled', 'stop-mode');
       setSpinFace('play');
@@ -1806,8 +1810,8 @@
       if (totalSpinWin > 0) showWinPopup(totalSpinWin);
       updateUI();
 
-      if (autoSpinActive) {
-        // O Auto-Spin continua a gerir a sua própria sequência.
+      if (wasAutoSpin && autoSpinActive) {
+        // Só uma jogada explicitamente iniciada pelo Auto-Spin pode agendar outra.
         disableBetControls(false);
         advanceAutoSpinAfterPaidSpin();
       } else {
@@ -1928,7 +1932,7 @@
     updateUI();
 
     if (autoSpinActive && autoSpinCount > 0) {
-      setTimeout(() => triggerSpin(), isTurbo ? 350 : 700);
+      setTimeout(() => triggerSpin(false, true), isTurbo ? 350 : 700);
     } else if (autoSpinActive) {
       stopAutoSpin();
     }
@@ -1970,7 +1974,7 @@
     autoSpinActive = true;
     updateAutoSpinButton();
     closeModal('autospin-modal');
-    triggerSpin();
+    triggerSpin(false, true);
   }
   function stopAutoSpin() {
     autoSpinActive = false;
