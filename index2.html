@@ -1795,33 +1795,21 @@
       updateUI();
 
       if (autoSpinActive) {
+        // O Auto-Spin continua a gerir a sua própria sequência.
         disableBetControls(false);
         advanceAutoSpinAfterPaidSpin();
-      } else if (hasWinningLine) {
-        // No jogo normal, uma linha premiada inicia a cadeia automática.
-        // A cadeia só termina quando uma jogada completa não tiver linhas vencedoras.
-        paidWinChainActive = true;
-        const spinBtn = document.getElementById('spinBtn');
-        spinBtn.classList.add('disabled');
-        setSpinFace('play');
-        document.getElementById('statusBanner').innerText = 'GANHASTE ' + totalSpinWin.toFixed(2) + '€! A CONTINUAR...';
-        if (paidWinChainTimer) clearTimeout(paidWinChainTimer);
-        paidWinChainTimer = setTimeout(() => {
-          paidWinChainTimer = null;
-          if (paidWinChainActive && !inFreeSpins && !bonusAwaitingConfirmation && !isSpinning) {
-            disableBetControls(true);
-            triggerSpin();
-          }
-        }, isTurbo ? 900 : 1450);
       } else {
-        // Uma jogada sem linhas premiadas termina a cadeia e devolve o controlo.
+        // No jogo normal, JOGAR fica disponível assim que os tambores param,
+        // independentemente de ter saído prémio. A próxima jogada exige novo clique.
         paidWinChainActive = false;
         if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
         disableBetControls(false);
         const spinBtn = document.getElementById('spinBtn');
         spinBtn.classList.remove('disabled', 'stop-mode');
         setSpinFace('play');
-        document.getElementById('statusBanner').innerText = 'PRESSIONE JOGAR PARA COMEÇAR';
+        document.getElementById('statusBanner').innerText = totalSpinWin > 0
+          ? 'GANHASTE ' + totalSpinWin.toFixed(2) + '€! CARREGA EM JOGAR PARA CONTINUAR'
+          : 'PRESSIONE JOGAR PARA COMEÇAR';
       }
     }
   }
