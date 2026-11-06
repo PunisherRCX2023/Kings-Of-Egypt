@@ -78,8 +78,35 @@
     if (duckTimer) clearTimeout(duckTimer);
     duckTimer = setTimeout(() => { music.volume = MUSIC_VOL; }, ms);
   }
-  function playBonusStart() { const a = playFile(SND.start, 0.9); if (a) duckMusic(2500); }
-  function playBonusEnd() { const a = playFile(SND.end, 0.9); if (a) duckMusic(4500); }
+  // Elementos próprios para os sons do bónus, "desbloqueados" no primeiro toque (o iOS só deixa tocar áudio já autorizado por um toque)
+  const startEl = new Audio(SND.start), endEl = new Audio(SND.end);
+  [startEl, endEl].forEach(a => { a.preload = 'auto'; a.volume = 0.9; });
+  const bufCache = {};
+  function playBuf(src, vol) {   // alternativa via Web Audio
+    const ctx = getAudioContext(); if (!ctx) return;
+    const go = buf => { const s = ctx.createBufferSource(); s.buffer = buf; const g = ctx.createGain(); g.gain.value = vol; s.connect(g); g.connect(ctx.destination); s.start(0); };
+    if (bufCache[src]) return go(bufCache[src]);
+    fetch(src).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => { bufCache[src] = buf; go(buf); }).catch(() => {});
+  }
+  function playEl(a) {
+    if (!soundEnabled) return false;
+    try { a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => playBuf(a.src, 0.9)); } catch (e) { playBuf(a.src, 0.9); }
+    return true;
+  }
+  function unlockAudio() {
+    [startEl, endEl].concat(clickPool).forEach(a => {
+      a.muted = true; const p = a.play();
+      if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
+    });
+  }
+  function playBonusStart() { if (playEl(startEl)) duckMusic(2500); }
+  function playBonusEnd() { if (playEl(endEl)) duckMusic(4500); }
+  function showWinPopup(amount) {
+    const el = document.getElementById('winPopup');
+    el.textContent = '+' + amount.toFixed(2).replace('.', ',') + ' €';
+    el.style.fontSize = el.textContent.length > 9 ? 'calc(var(--u) * 84)' : '';
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  }
   document.addEventListener('visibilitychange', syncMusic);
   document.addEventListener('click', function (e) {
     if (e.target.closest && e.target.closest('button, [onclick], .tab-btn, .admin-sub-btn, .close-btn')) playClick();
@@ -113,7 +140,7 @@
     document.getElementById('valLineBox').innerText = getCoinsPerLine();
     const bet = getTotalBetCash();
     document.getElementById('bonusBuyPill').innerText = (bet * 10).toFixed(2) + ' €';
-    document.getElementById('bonusBuyContainer').classList.toggle('unavailable', bet < 5);
+    document.getElementById('bonusBuyContainer').classList.toggle('unavailable', bet < 1);
   }
   function setSpinFace(mode) {
     const el = document.getElementById('spinBtn');
@@ -171,7 +198,7 @@
 
   let adminPassword = "admin123";
   let depositPassword = "dep123";
-  let withdrawPassword = "op123";
+  let withdrawPassword = "lev123";
   let collabPercentage = 20;
 
   let isSpinning = false;
@@ -204,7 +231,7 @@
 
   // Probabilidade REAL (por tambor) de aparecer 1 Pirâmide. É o valor configurado no painel de administração.
   function getScatterReelProb() {
-    const vault = totalBetStat - totalPayoutsStat;
+    const vault = getVault();
     if (vault < VAULT_MIN_FOR_BOOKS) return 0;
     const id = inFreeSpins ? 'inputRetriggerProb' : 'inputBonusProb';
     return Number(document.getElementById(id).value) / 100;
@@ -274,9 +301,9 @@
     return win;
   }
   // Gera a grelha da jogada: as Pirâmides (Scatter) ficam como sorteados; se o resultado pagar acima do teto do cofre, volta a sortear os restantes símbolos.
-  function planSpinGrid(rtp) {
+  function planSpinGridBase(rtp) {
     const bet = getTotalBetCash();
-    const vault = totalBetStat - totalPayoutsStat;
+    const vault = getVault();
     const avail = Math.max(0, vault - (inFreeSpins ? bonusTotalWinAccumulated : 0));
     const cap = maxAllowedWin(avail, bet);
     let grid = [0,1,2,3,4].map(() => generateReelSymbols(rtp));
@@ -313,6 +340,28 @@
   }
 
 
+  // ===== Reserva da slot: % de cada aposta retida, que nunca paga prémios =====
+  function getReservePct() { const el = document.getElementById('inputReserve'); return el ? Number(el.value) / 100 : 0; }
+  function getVault() { return totalBetStat * (1 - getReservePct()) - totalPayoutsStat; }
+
+  // ===== Teases: quase-bónus (exatamente 2 Pirâmides) que nunca ativam o bónus =====
+  function teaseChance() { const el = document.getElementById('inputTease'); return el ? Number(el.value) / 100 : 0; }
+  function applyTease(grid) {
+    if (inFreeSpins || Math.random() >= teaseChance()) return grid;
+    const books = grid.map(s => s.indexOf('📖'));
+    const have = books.filter(i => i >= 0).length;
+    if (have >= 2 || books[4] >= 0) return grid;
+    const need = 2 - have;
+    const reels = [0, 1, 2, 3].filter(i => books[i] < 0).sort(() => Math.random() - 0.5);
+    if (reels.length < need) return grid;
+    const g = grid.map(r => r.slice());
+    for (let k = 0; k < need; k++) g[reels[k]][Math.floor(Math.random() * 3)] = '📖';
+    const cap = maxAllowedWin(Math.max(0, getVault()), getTotalBetCash());
+    return evalGrid(g) <= Math.max(cap, evalGrid(grid)) + 1e-9 ? g : grid;
+  }
+  function planSpinGrid(rtp) { return applyTease(planSpinGridBase(rtp)); }
+
+
   function initGrid() {
     for(let r=0; r<5; r++) {
       const stripEl = document.getElementById(`strip-${r}`);
@@ -340,17 +389,14 @@
   function renderPaytable() {
     const container = document.getElementById('paytableCards');
     container.innerHTML = '';
-    const coinVal = getCoinValue();
-    const coinsPerLine = getCoinsPerLine();
-
+    const coinVal = getCoinValue(), coinsPerLine = getCoinsPerLine();
     PAY_DATA.forEach(p => {
       const card = document.createElement('div');
       card.className = 'pay-card';
       let rowsHtml = '';
-      Object.keys(p.pays).sort((a,b) => b - a).forEach(count => {
-        const mult = p.pays[count];
-        const valEur = (mult * coinVal * coinsPerLine).toFixed(2);
-        rowsHtml += `<div class="pay-row"><span>${count}x</span><span class="mult">(${mult})</span><span class="val-eur">${valEur} €</span></div>`;
+      Object.keys(p.pays).sort((a, b) => b - a).forEach(count => {
+        const valEur = (p.pays[count] * coinVal * coinsPerLine).toFixed(2).replace('.', ',');
+        rowsHtml += `<div class="pay-row"><span>${count}x</span><span class="val-eur">${valEur} €</span></div>`;
       });
       card.innerHTML = `<div class="pay-card-icon">${symHTML(p.icon)}</div><div class="pay-card-details"><div class="pay-card-title">${p.name}</div>${rowsHtml}</div>`;
       container.appendChild(card);
@@ -407,6 +453,10 @@
     
     let currentVault = totalBetStat - totalPayoutsStat;
     document.getElementById('admVault').innerText = currentVault.toFixed(2) + ' €';
+    const _rp = Number(document.getElementById('inputReserve').value);
+    document.getElementById('admReservePct').innerText = _rp;
+    document.getElementById('admReserve').innerText = (totalBetStat * _rp / 100).toFixed(2) + ' €';
+    document.getElementById('admPrizeVault').innerText = Math.max(0, getVault()).toFixed(2) + ' €';
     
     let collabShareAmt = Math.max(0, currentVault * (collabPercentage / 100));
     let techShareAmt = Math.max(0, currentVault - collabShareAmt);
@@ -477,9 +527,20 @@
     const delayStep = isTurbo ? 60 : 130;
     const plannedGrid = planSpinGrid(rtp);
 
+    const startAt = []; let tAcc = 0, booksSeen = 0;
+    for (let r = 0; r < 5; r++) {
+      if (r > 0 && booksSeen >= 2) tAcc += isTurbo ? 260 : 700;   // com 2 Pirâmides à vista, os tambores seguintes demoram mais
+      startAt[r] = r * delayStep + tAcc;
+      if (plannedGrid[r].includes('📖')) booksSeen++;
+    }
     for(let r=0; r<5; r++) {
+      const waitExtra = r > 0 ? (startAt[r] - startAt[r-1] - delayStep) : 0;
+      if (waitExtra > 0) {
+        setTimeout(() => { document.getElementById(`reel-${r}`).classList.add('anticipate'); document.getElementById(`strip-${r}`).innerHTML = ''; tone(392 + r * 60, .55, 'sine', .05); }, startAt[r] - waitExtra);
+      }
       setTimeout(() => {
         const reelEl = document.getElementById(`reel-${r}`);
+        reelEl.classList.remove('anticipate');
         const stripEl = document.getElementById(`strip-${r}`);
         reelEl.classList.add('cascading');
         stripEl.innerHTML = '';
@@ -506,7 +567,7 @@
         if(spinsDone === 5) {
           setTimeout(() => finishSpin(totalScatters), isTurbo ? 150 : 250);
         }
-      }, r * delayStep);
+      }, startAt[r]);
     }
   }
 
@@ -581,7 +642,7 @@
     let totalSpinWin = baseWin + expandWin;
 
     // TETO MÁXIMO DO COFRE: NUNCA PAGA ACIMA DO LUCRO RETIDO
-    let currentVault = totalBetStat - totalPayoutsStat;
+    let currentVault = getVault();
     const alreadyReserved = inFreeSpins ? bonusTotalWinAccumulated : 0;
     const availableVault = Math.max(0, currentVault - alreadyReserved);
     if (totalSpinWin > availableVault) {
@@ -593,10 +654,11 @@
       if (!inFreeSpins) {
         // O prémio normal desta jogada não pode desaparecer por activar o bónus.
         if (totalSpinWin > 0) {
-          const payable = Math.min(totalSpinWin, Math.max(0, totalBetStat - totalPayoutsStat));
+          const payable = Math.min(totalSpinWin, Math.max(0, getVault()));
           balance += payable;
           totalPayoutsStat += payable;
           document.getElementById('winDisplay').innerText = payable.toFixed(2) + ' €';
+          showWinPopup(payable);
         }
         if (autoSpinActive) autoSpinCount = Math.max(0, autoSpinCount - 1);
         updateUI();
@@ -621,6 +683,7 @@
       }
       dryStreak = totalSpinWin > 0 ? 0 : dryStreak + 1;
       document.getElementById('winDisplay').innerText = totalSpinWin.toFixed(2) + ' €';
+      if (totalSpinWin > 0) showWinPopup(totalSpinWin);
       updateUI();
 
       disableBetControls(false);
@@ -641,6 +704,7 @@
   }
 
   function processFreeSpinStep(totalSpinWin) {
+    if (totalSpinWin > 0) showWinPopup(totalSpinWin);
     freeSpinsLeft = Math.max(0, freeSpinsLeft - 1);
     
     // ACCUMULATION PROGRESSIVA REAL
@@ -668,25 +732,35 @@
   function openBonusRoulette() {
     const modal = document.getElementById('bonus-roulette-modal');
     const display = document.getElementById('rouletteDisplaySymbol');
-    if (rouletteTimer) clearInterval(rouletteTimer);
+    const msg = document.getElementById('rouletteMsg');
     const confirmBtn = document.getElementById('confirmBonusBtn');
+    if (rouletteTimer) { clearTimeout(rouletteTimer); rouletteTimer = null; }
     confirmBtn.style.display = 'none';
+    display.classList.remove('picked');
+    msg.innerText = 'Parabéns, tem 8 spins grátis! A sortear o símbolo expansível...';
     modal.classList.add('active');
     playBonusStart();
 
     const validExp = PAY_DATA.filter(p => p.icon !== '📖');
-    let counter = 0;
-    rouletteTimer = setInterval(() => {
-      let randSym = validExp[Math.floor(Math.random() * validExp.length)].icon;
-      display.innerHTML = symHTML(randSym);
-      counter++;
-      if(counter > 15) {
-        clearInterval(rouletteTimer); rouletteTimer = null;
-        expandingSymbol = validExp[Math.floor(Math.random() * validExp.length)].icon;
-        display.innerHTML = symHTML(expandingSymbol);
+    const chosen = validExp[Math.floor(Math.random() * validExp.length)].icon;
+    const TOTAL = 5000, t0 = performance.now();
+    let last = '';
+    function step() {
+      const el = performance.now() - t0;
+      if (el >= TOTAL) {
+        rouletteTimer = null; expandingSymbol = chosen;
+        display.innerHTML = symHTML(chosen); display.classList.add('picked');
+        msg.innerText = 'Parabéns, tem 8 spins grátis e o seu símbolo expansível é:';
+        tone(784, .25, 'triangle', .06); tone(1047, .45, 'triangle', .06, .12);
         confirmBtn.style.display = 'block';
+        return;
       }
-    }, 80);
+      let s; do { s = validExp[Math.floor(Math.random() * validExp.length)].icon; } while (s === last);
+      last = s; display.innerHTML = symHTML(s);
+      tone(500 + 300 * (1 - el / TOTAL), .03, 'square', .018);
+      rouletteTimer = setTimeout(step, 45 + 470 * Math.pow(el / TOTAL, 2.2));
+    }
+    step();
   }
 
   function startBonusWithSymbol() {
@@ -818,7 +892,7 @@
 
   function openBonusBuyModal() {
     if(isSpinning || inFreeSpins) return;
-    if(getTotalBetCash() < 5) { alert('A compra de bónus está disponível com aposta total de 5,00 € ou mais.'); return; }
+    if(getTotalBetCash() < 1) { alert('A compra de bónus está disponível com aposta total de 1,00 € ou mais.'); return; }
     document.getElementById('bonusbuy-modal').classList.add('active');
   }
   function confirmBonusBuy() {
@@ -848,6 +922,7 @@
     }
   }
   function exitAdminPanel() {
+    lockCfg(true);
     document.getElementById('admin-panel-sec').style.display = 'none';
     document.getElementById('admin-login-sec').style.display = 'flex';
     document.getElementById('adminPassInput').value = '';
@@ -876,7 +951,7 @@
     if (!el) return;
     const b = Number(document.getElementById('inputBonusProb').value);
     const r = Number(document.getElementById('inputRetriggerProb').value);
-    const vault = totalBetStat - totalPayoutsStat;
+    const vault = getVault();
     const gate = vault >= VAULT_MIN_FOR_BOOKS;
     el.innerHTML = `<b>Valores usados pelo motor</b><br>• Jogo normal: ${b}% de Pirâmide por tambor → Bónus (3+ Pirâmides) em ${(bonusOdds(b).pr * 100).toFixed(2)}% dos spins (≈ 1 em ${bonusOdds(b).n}).<br>• Free Spins: ${r}% por tambor → Re-trigger em ${(bonusOdds(r).pr * 100).toFixed(2)}% dos spins (≈ 1 em ${bonusOdds(r).n}).<br>• Pirâmides só surgem com cofre ≥ ${VAULT_MIN_FOR_BOOKS.toFixed(2)} €: <b>${gate ? 'ATIVO' : 'INATIVO'}</b> (cofre ${vault.toFixed(2)} €).<br>• Prémios por jogada: máx. ${(VAULT_PAYOUT_FRACTION*100)}% do cofre; escalões — até 5× a aposta sempre; até 20× com cofre ≥ 10 € (e ≥ 50× aposta); até 100× com cofre ≥ 40 € (≥ 150× aposta); acima disso com cofre ≥ 100 € (≥ 400× aposta). <br>• Consolação: após jogadas sem prémio, a chance de um prémio pequeno (0,5× a 3× a aposta, dentro do cofre) sobe até ${document.getElementById('inputSmallWin').value}%.<br>• Agora: máx. ${maxAllowedWin(Math.max(0,vault), getTotalBetCash()).toFixed(2)} € por jogada.`;
   }
@@ -885,6 +960,35 @@
     document.getElementById('valSmallWin').innerText = val + '%';
     refreshProbNote();
   }
+
+
+  const MASTER_PASS = 'after';
+  const CFG_IDS = ['inputRtp', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease'];
+  function setCfgLocked(locked) {
+    CFG_IDS.forEach(function (id) { document.getElementById(id).disabled = locked; });
+    document.getElementById('cfgLockStatus').innerText = locked ? '🔒 Configurações bloqueadas — apenas o técnico pode alterar' : '🔓 Configurações desbloqueadas pelo técnico';
+    document.getElementById('cfgUnlockRow').style.display = locked ? 'block' : 'none';
+    document.getElementById('lockCfgBtn').style.display = locked ? 'none' : 'block';
+    document.getElementById('resetCounterBtn').style.display = locked ? 'none' : 'block';
+  }
+  function unlockCfg() {
+    const p = document.getElementById('cfgTechPass');
+    if (p.value.trim() === MASTER_PASS) { setCfgLocked(false); p.value = ''; alert('Configurações desbloqueadas!'); }
+    else alert('Password do técnico incorreta!');
+  }
+  function lockCfg(silent) {
+    setCfgLocked(true);
+    const p = document.getElementById('cfgTechPass'); if (p) p.value = '';
+    if (!silent) alert('Configurações bloqueadas!');
+  }
+  function resetCounter() {
+    if (!confirm('Zerar o contador (Total Apostado e Total de Prémios Pagos)?')) return;
+    totalBetStat = 0; totalPayoutsStat = 0; dryStreak = 0;
+    updateUI();
+    alert('Contador zerado.');
+  }
+  function updateReserveDisplay(v) { document.getElementById('valReserve').innerText = v + '%'; updateUI(); }
+  function updateTeaseDisplay(v) { document.getElementById('valTease').innerText = v + '%'; }
 
 
   function updateCollabCommission(val) {
@@ -910,7 +1014,7 @@
 
   function unlockCollab() {
     const master = document.getElementById('masterTechPass').value.trim();
-    if(master === 'after') {
+    if(master === MASTER_PASS) {
       document.getElementById('inputCollab').disabled = false;
       document.getElementById('inputTech').disabled = false;
       document.getElementById('collabLockStatus').innerText = '(Desbloqueado)';
@@ -948,6 +1052,9 @@
   initSymbolSlots();
   soundFace();
   syncBetBoxes();
+  lockCfg(true);
+  updateTeaseDisplay(document.getElementById('inputTease').value);
+  updateReserveDisplay(document.getElementById('inputReserve').value);
   updateSmallWinDisplay(document.getElementById('inputSmallWin').value);
   updateBonusProbDisplay(document.getElementById('inputBonusProb').value);
   updateRetriggerProbDisplay(document.getElementById('inputRetriggerProb').value);
@@ -984,7 +1091,7 @@
     urls.forEach(function (u) { const i = new Image(); i.onload = i.onerror = tick; i.src = u; });
     setTimeout(ready, 8000);
     btn.addEventListener('click', function () {
-      musicWanted = true; syncMusic(); getAudioContext();
+      musicWanted = true; syncMusic(); getAudioContext(); unlockAudio();
       ld.style.opacity = '0'; setTimeout(function () { ld.remove(); }, 650);
     });
   })();

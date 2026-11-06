@@ -480,3 +480,32 @@
     .ld-fill { height: 100%; width: 0; background: linear-gradient(90deg, #e9b73c, #fff1a6); transition: width .2s; }
     .ld-note { color: #f1dfa6; font-size: 14px; text-align: center; margin-top: 10px; letter-spacing: .05em; }
     #ldBtn { display: none; padding: 14px 30px; border-radius: 40px; border: 2px solid #fff1a6; font-size: 17px; font-weight: 800; letter-spacing: .06em; color: #3a2102; background: linear-gradient(180deg, #ffe27a, #e0a416); box-shadow: 0 0 26px rgba(255,200,70,.6); animation: spinPulse 1.8s infinite; }
+
+    /* ===== v4.1: ajustes pedidos ===== */
+    .btn-bonus-buy, #bonusBuyContainer { animation: none !important; box-shadow: none !important; }
+    .win-popup { z-index: 8; display: none; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; font-size: calc(var(--u) * 124); font-weight: 900; letter-spacing: .01em;
+      color: #ffe27a; -webkit-text-stroke: calc(var(--u) * 5) #5a3200; paint-order: stroke fill; text-shadow: 0 calc(var(--u) * 7) 0 #6b3d08, 0 0 calc(var(--u) * 44) rgba(255,200,60,.95); }
+    .win-popup.show { display: block; animation: winBoom 1.3s ease-out forwards; }
+    @keyframes winBoom {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 14% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); } 28% { transform: translate(-50%, -50%) scale(1); }
+      78% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.25); } }
+    .reel.anticipate { background: radial-gradient(circle at 50% 50%, rgba(255,214,90,.38), rgba(255,170,40,.08) 70%); box-shadow: inset 0 0 calc(var(--u) * 34) rgba(255,210,90,.95); animation: antiPulse .45s infinite alternate ease-in-out; }
+    @keyframes antiPulse { from { opacity: .65; } to { opacity: 1; } }
+    #rouletteDisplaySymbol.picked { animation: rouletteBeat .75s infinite ease-in-out; box-shadow: 0 0 30px rgba(255,210,80,.95); }
+    @keyframes rouletteBeat { 0%,100% { transform: scale(1); } 50% { transform: scale(1.16); } }
+    .op-call { font-size: 15px; color: #ffda73; font-weight: 800; text-align: center; margin: 6px 0 14px; letter-spacing: .03em; }
+
+    /* tabela de prémios em grelha 2x5 */
+    .pt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .pt-grid .pay-card { display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 8px; min-width: 0; margin: 0; }
+    .pt-grid .pay-card-icon { flex: 0 0 46px; }
+    .pt-grid .pay-card-details { flex: 1; min-width: 0; }
+    .pt-grid .pay-card-title { font-size: 12px; font-weight: 800; color: #ffda73; margin-bottom: 3px; }
+    .pt-grid .pay-row { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; color: #ddd; }
+    .pt-grid .val-eur { color: #7cd927; font-weight: 700; white-space: nowrap; }
+    .pt-lines-title { font-size: 12px; color: #ffda73; font-weight: bold; margin: 12px 0 6px; }
+
+    /* configurações bloqueadas (técnico) */
+    .cfg-lock { border: 1px solid rgba(212,174,80,.35); border-radius: 8px; padding: 10px; margin-bottom: 8px; background: #0e0a05; }
+    #cfgLockStatus { font-size: 12px; font-weight: 700; color: #ffda73; margin-bottom: 8px; }
+    input[type=range]:disabled { opacity: .4; }
