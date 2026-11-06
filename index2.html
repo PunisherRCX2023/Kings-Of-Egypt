@@ -1106,6 +1106,8 @@
   let bonusTotalWinAccumulated = 0;
   let bonusAwaitingConfirmation = false;
   let freeSpinTimer = null;
+  let paidWinChainActive = false;
+  let paidWinChainTimer = null;
   let expandingSymbol = '';
   let gridState = [[],[],[],[],[]];
 
@@ -1578,6 +1580,8 @@
         console.error('Falha ao preparar o giro:', error);
         bonusBuyPending = false;
         isSpinning = false;
+        paidWinChainActive = false;
+        if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
         disableBetControls(false);
         for (let r = 0; r < 5; r++) {
           const reelEl = document.getElementById('reel-' + r);
@@ -1639,9 +1643,9 @@
         }
         revealOneReel(r);
 
-        // Dois scatters nos dois primeiros tambores ativam a sequência de suspense:
-        // terceiro tambor após 1 s, quarto após 2 s e quinto após 3 s.
-        if (r === 1 && stoppedScatters >= 2) teaseMode = true;
+        // A partir do momento em que já foram revelados dois scatters,
+        // cada tambor seguinte demora 1 segundo adicional a parar.
+        if (stoppedScatters >= 2) teaseMode = true;
 
         // Assim que aparece o terceiro scatter, todos os tambores restantes param.
         if (stoppedScatters >= 3) {
@@ -1691,7 +1695,7 @@
     function nextCascade() {
       if (index >= steps.length) {
         renderSpinGrid(plan.finalGrid, []);
-        setTimeout(() => finishSpin(scatters, plan.totalWin), isTurbo ? 60 : 140);
+        setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0), isTurbo ? 60 : 140);
         return;
       }
       const step = steps[index];
@@ -1714,7 +1718,7 @@
     }
     if (!steps.length) {
       renderSpinGrid(plan.finalGrid, []);
-      setTimeout(() => finishSpin(scatters, plan.totalWin), isTurbo ? 60 : 140);
+      setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0), isTurbo ? 60 : 140);
     } else {
       nextCascade();
     }
@@ -1731,7 +1735,7 @@
     }
   }
 
-  function finishSpin(scatters, totalSpinWin) {
+  function finishSpin(scatters, totalSpinWin, hasWinningLine = totalSpinWin > 0) {
     isSpinning = false;
     const wasFreeSpin = currentSpinIsFree;
     currentSpinIsFree = false;
@@ -1749,6 +1753,8 @@
 
     if (scatters >= 3) {
       if (!inFreeSpins) {
+        paidWinChainActive = false;
+        if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
         if (totalSpinWin > 0) {
           balance += totalSpinWin;
           prizeVaultBalance = Math.max(0, prizeVaultBalance - totalSpinWin);
@@ -1787,12 +1793,36 @@
       document.getElementById('winDisplay').innerText = totalSpinWin.toFixed(2) + ' €';
       if (totalSpinWin > 0) showWinPopup(totalSpinWin);
       updateUI();
-      disableBetControls(false);
-      const spinBtn = document.getElementById('spinBtn');
-      spinBtn.classList.remove('disabled', 'stop-mode');
-      setSpinFace('play');
-      document.getElementById('statusBanner').innerText = totalSpinWin > 0 ? 'GANHASTE ' + totalSpinWin.toFixed(2) + '€!' : 'PRESSIONE JOGAR PARA COMEÇAR';
-      advanceAutoSpinAfterPaidSpin();
+
+      if (autoSpinActive) {
+        disableBetControls(false);
+        advanceAutoSpinAfterPaidSpin();
+      } else if (hasWinningLine) {
+        // No jogo normal, uma linha premiada inicia a cadeia automática.
+        // A cadeia só termina quando uma jogada completa não tiver linhas vencedoras.
+        paidWinChainActive = true;
+        const spinBtn = document.getElementById('spinBtn');
+        spinBtn.classList.add('disabled');
+        setSpinFace('play');
+        document.getElementById('statusBanner').innerText = 'GANHASTE ' + totalSpinWin.toFixed(2) + '€! A CONTINUAR...';
+        if (paidWinChainTimer) clearTimeout(paidWinChainTimer);
+        paidWinChainTimer = setTimeout(() => {
+          paidWinChainTimer = null;
+          if (paidWinChainActive && !inFreeSpins && !bonusAwaitingConfirmation && !isSpinning) {
+            disableBetControls(true);
+            triggerSpin();
+          }
+        }, isTurbo ? 900 : 1450);
+      } else {
+        // Uma jogada sem linhas premiadas termina a cadeia e devolve o controlo.
+        paidWinChainActive = false;
+        if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
+        disableBetControls(false);
+        const spinBtn = document.getElementById('spinBtn');
+        spinBtn.classList.remove('disabled', 'stop-mode');
+        setSpinFace('play');
+        document.getElementById('statusBanner').innerText = 'PRESSIONE JOGAR PARA COMEÇAR';
+      }
     }
   }
 
@@ -1800,14 +1830,12 @@
     if (totalSpinWin > 0) showWinPopup(totalSpinWin);
     freeSpinsLeft = Math.max(0, freeSpinsLeft - 1);
 
-    // Acumulação progressiva de todos os prémios do bónus.
+    // Todas as Free Spins atribuídas são executadas, mesmo sem prémio.
+    // Um re-trigger acrescenta 8, 10 ou 12 spins antes de descontar esta jogada.
     bonusTotalWinAccumulated += totalSpinWin;
     document.getElementById('winDisplay').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
 
-    // A sequência automática só continua se esta Free Spin deu prémio
-    // ou se houve um re-trigger. Uma jogada sem prémio termina o bónus.
-    const shouldContinue = totalSpinWin > 0 || hasRetrigger;
-    if (freeSpinsLeft > 0 && shouldContinue) {
+    if (freeSpinsLeft > 0) {
       document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
       if (freeSpinTimer) clearTimeout(freeSpinTimer);
       freeSpinTimer = setTimeout(() => {
@@ -1817,8 +1845,6 @@
       return;
     }
 
-    // Sem prémio (e sem re-trigger), encerra a sequência mesmo que ainda existissem spins.
-    freeSpinsLeft = 0;
     if (freeSpinTimer) { clearTimeout(freeSpinTimer); freeSpinTimer = null; }
     balance += bonusTotalWinAccumulated;
     prizeVaultBalance = Math.max(0, prizeVaultBalance - bonusTotalWinAccumulated);
@@ -1869,6 +1895,8 @@
 
   function startBonusWithSymbol() {
     if (!bonusAwaitingConfirmation || !expandingSymbol) return;
+    paidWinChainActive = false;
+    if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
     closeModal('bonus-roulette-modal');
     bonusAwaitingConfirmation = false;
     inFreeSpins = true;
