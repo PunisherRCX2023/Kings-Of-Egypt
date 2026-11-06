@@ -576,7 +576,7 @@
   </div>
   <div class="grp">
   <div class="clock" id="clock">10:30</div>
-  <button class="version-trigger" type="button" onclick="openModal('version-modal')" aria-label="Ver versão do jogo">v1.46.2</button>
+  <button class="version-trigger" type="button" onclick="openModal('version-modal')" aria-label="Ver versão do jogo">v1.46.3</button>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
   <div class="deco d1" style="left:calc(var(--u)*88.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/eye-of-horus.PNG" alt="" aria-hidden="true"></div><div class="deco d2" style="left:calc(var(--u)*208.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/scarab.PNG" alt="" aria-hidden="true"></div><div class="deco d3" style="left:calc(var(--u)*328.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/Ankh.PNG" alt="" aria-hidden="true"></div><div class="deco d4" style="left:calc(var(--u)*448.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/djed-pillar.PNG" alt="" aria-hidden="true"></div><div class="deco d5" style="left:calc(var(--u)*568.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/feather-maat.PNG" alt="" aria-hidden="true"></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
@@ -718,7 +718,7 @@
       <div class="modal-title">Versão do Jogo</div>
       <button class="close-btn" type="button" onclick="closeModal('version-modal')" aria-label="Fechar">✕</button>
     </div>
-    <div class="version-number">v1.46.2</div>
+    <div class="version-number">v1.46.3</div>
     <div class="version-note">Kings of Egypt<br>Versão inicial da série 1.x</div>
     <button class="btn-action" type="button" style="width:100%;" onclick="closeModal('version-modal')">FECHAR</button>
   </div>
@@ -1541,9 +1541,12 @@
 
   function triggerSpin(isFreeSpinCall = false, isAutoSpinCall = false) {
     if (isSpinning || bonusAwaitingConfirmation) return;
+    // Fixa a origem desta jogada durante todo o ciclo: uma jogada manual
+    // nunca herda o estado de Auto-Spin de uma jogada anterior.
     // Impede que um callback antigo do Auto-Spin inicie uma jogada depois de este ter sido parado.
     if (isAutoSpinCall && (!autoSpinActive || autoSpinCount <= 0)) return;
-    currentSpinIsAuto = Boolean(isAutoSpinCall && autoSpinActive && !isFreeSpinCall);
+    const spinIsAuto = Boolean(isAutoSpinCall && autoSpinActive && !isFreeSpinCall);
+    currentSpinIsAuto = spinIsAuto;
     currentSpinIsFree = Boolean(inFreeSpins && isFreeSpinCall);
     clearWinningHighlights();
     const cost = getTotalBetCash();
@@ -1668,7 +1671,7 @@
         // Se o terceiro scatter aparecer, revela imediatamente os tambores restantes.
         for (let r = stoppedReels; r < 5; r++) revealOneReel(r);
         setTimeout(() => {
-          if (activeSpinId === spinId && isSpinning) playPlannedCascades(plan, totalScatters, spinId);
+          if (activeSpinId === spinId && isSpinning) playPlannedCascades(plan, totalScatters, spinId, spinIsAuto);
         }, isTurbo ? 120 : 220);
       };
 
@@ -1725,7 +1728,7 @@
     }
   }
 
-  function playPlannedCascades(plan, scatters, spinId) {
+  function playPlannedCascades(plan, scatters, spinId, spinIsAuto = false) {
     if (activeSpinId !== spinId || !isSpinning) return;
     const steps = plan.cascades || [];
     let index = 0;
@@ -1733,8 +1736,12 @@
     function nextCascade() {
       if (activeSpinId !== spinId || !isSpinning) return;
       if (index >= steps.length) {
-        renderSpinGrid(plan.finalGrid, []);
-        setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0, spinId), isTurbo ? 60 : 140);
+        // Mantém visível a última combinação premiada, incluindo todas as linhas
+        // vencedoras dessa etapa, até à próxima jogada começar.
+        const lastWinningStep = steps[steps.length - 1];
+        if (lastWinningStep) renderSpinGrid(lastWinningStep.grid, lastWinningStep.winningCells);
+        else renderSpinGrid(plan.finalGrid, []);
+        setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0, spinId, spinIsAuto), isTurbo ? 60 : 140);
         return;
       }
       const step = steps[index];
@@ -1757,7 +1764,7 @@
     }
     if (!steps.length) {
       renderSpinGrid(plan.finalGrid, []);
-      setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0, spinId), isTurbo ? 60 : 140);
+      setTimeout(() => finishSpin(scatters, plan.totalWin, false, spinId, spinIsAuto), isTurbo ? 60 : 140);
     } else {
       nextCascade();
     }
@@ -1778,14 +1785,14 @@
     }
   }
 
-  function finishSpin(scatters, totalSpinWin, hasWinningLine = totalSpinWin > 0, spinId = activeSpinId) {
+  function finishSpin(scatters, totalSpinWin, hasWinningLine = totalSpinWin > 0, spinId = activeSpinId, spinIsAuto = false) {
     // Só o callback pertencente ao giro ativo pode liquidar e concluir essa jogada.
     if (!spinId || activeSpinId !== spinId || lastFinishedSpinId === spinId) return;
     lastFinishedSpinId = spinId;
     activeSpinId = 0;
     isSpinning = false;
     const wasFreeSpin = currentSpinIsFree;
-    const wasAutoSpin = currentSpinIsAuto;
+    const wasAutoSpin = Boolean(spinIsAuto);
     currentSpinIsFree = false;
     currentSpinIsAuto = false;
 
