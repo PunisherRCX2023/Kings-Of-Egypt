@@ -399,11 +399,10 @@
     .clock { right: calc(var(--u) * 14); top: calc(var(--u) * 104); z-index: 6; padding: calc(var(--u) * 2) calc(var(--u) * 14); font-size: calc(var(--u) * 24); color: #f4ead0; background: rgba(8,8,10,.72); border-radius: calc(var(--u) * 8); }
 
     /* linha de ícones decorativos */
-    .deco { z-index: 3; border-radius: calc(var(--u) * 10); border: calc(var(--u) * 4) solid #d9a940; box-shadow: inset 0 0 calc(var(--u) * 18) rgba(0,0,0,.65), 0 calc(var(--u) * 4) calc(var(--u) * 10) rgba(0,0,0,.8); display: flex; align-items: center; justify-content: center; }
-    .deco img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
-    .d1 { background: radial-gradient(circle at 50% 40%, #2f63b8, #0b1d47); } .d2 { background: radial-gradient(circle at 50% 40%, #c8601f, #5a1d08); }
-    .d3 { background: radial-gradient(circle at 50% 40%, #2a64b0, #0a1f4a); } .d4 { background: radial-gradient(circle at 50% 40%, #2c9a62, #0c3d27); }
-    .d5 { background: radial-gradient(circle at 50% 40%, #1fa0a8, #0a3a44); }
+    /* Símbolos decorativos sem quadrados ou fundos: apenas os emblemas 3D */
+    .deco { z-index: 3; border: 0; border-radius: 0; box-shadow: none; background: transparent; display: flex; align-items: center; justify-content: center; }
+    .deco img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 4) rgba(0,0,0,.8)); }
+    .d1, .d2, .d3, .d4, .d5 { background: transparent; }
     .expanding-banner { display: none; z-index: 7; border-radius: calc(var(--u) * 12); border: calc(var(--u) * 4) solid #d9a940; text-align: center; line-height: calc(var(--u) * 92);
       background: linear-gradient(180deg, #2a1a08, #120a04); color: #ffe9a8; font-weight: 800; font-size: calc(var(--u) * 32); box-shadow: 0 0 calc(var(--u) * 24) rgba(255,190,70,.5); margin: 0; padding: 0; }
     .expanding-banner .icon { display: inline-block; height: calc(var(--u) * 76); width: calc(var(--u) * 76); vertical-align: middle; margin-left: calc(var(--u) * 12); }
