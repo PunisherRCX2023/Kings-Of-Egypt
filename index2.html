@@ -1770,7 +1770,7 @@
       freeSpinTimer = setTimeout(() => {
         freeSpinTimer = null;
         if (inFreeSpins && freeSpinsLeft > 0 && !bonusAwaitingConfirmation) triggerSpin(true);
-      }, isTurbo ? 600 : 1200);
+      }, isTurbo ? 1400 : 1600);
     } else {
       balance += bonusTotalWinAccumulated;
       prizeVaultBalance = Math.max(0, prizeVaultBalance - bonusTotalWinAccumulated);
