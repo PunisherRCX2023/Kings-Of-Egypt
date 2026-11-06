@@ -400,6 +400,15 @@
     .sound-trigger svg, .menu-trigger svg { width: calc(var(--u) * 44); height: calc(var(--u) * 44); }
     .sound-trigger.muted { opacity: .75; }
     .clock { right: calc(var(--u) * 14); top: calc(var(--u) * 104); z-index: 6; padding: calc(var(--u) * 2) calc(var(--u) * 14); font-size: calc(var(--u) * 24); color: #f4ead0; background: rgba(8,8,10,.72); border-radius: calc(var(--u) * 8); }
+    .version-trigger {
+      position: absolute; left: calc(var(--u) * 14); top: calc(var(--u) * 104); z-index: 7;
+      padding: calc(var(--u) * 5) calc(var(--u) * 13); border: 1px solid #d9a940;
+      border-radius: calc(var(--u) * 8); color: #ffe18a; background: rgba(8,8,10,.82);
+      font-size: calc(var(--u) * 19); font-weight: 800; letter-spacing: .04em; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.55);
+    }
+    .version-number { color: #ffe18a; font-size: 30px; font-weight: 900; text-align: center; letter-spacing: 2px; padding: 12px 0 4px; }
+    .version-note { color: #d8cba8; font-size: 12px; line-height: 1.5; text-align: center; }
 
     /* linha de ícones decorativos */
     .deco { z-index: 3; border-radius: calc(var(--u) * 10); border: calc(var(--u) * 4) solid #d9a940; box-shadow: inset 0 0 calc(var(--u) * 18) rgba(0,0,0,.65), 0 calc(var(--u) * 4) calc(var(--u) * 10) rgba(0,0,0,.8); display: flex; align-items: center; justify-content: center; }
@@ -567,6 +576,7 @@
   </div>
   <div class="grp">
   <div class="clock" id="clock">10:30</div>
+  <button class="version-trigger" type="button" onclick="openModal('version-modal')" aria-label="Ver versão do jogo">v1.00</button>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
   <div class="deco d1" style="left:calc(var(--u)*88.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/eye-of-horus.PNG" alt="" aria-hidden="true"></div><div class="deco d2" style="left:calc(var(--u)*208.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/scarab.PNG" alt="" aria-hidden="true"></div><div class="deco d3" style="left:calc(var(--u)*328.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/Ankh.PNG" alt="" aria-hidden="true"></div><div class="deco d4" style="left:calc(var(--u)*448.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/djed-pillar.PNG" alt="" aria-hidden="true"></div><div class="deco d5" style="left:calc(var(--u)*568.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/feather-maat.PNG" alt="" aria-hidden="true"></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
@@ -701,6 +711,16 @@
       <div style="font-size:38px; color:#7cd927; font-weight:bold;" id="celebrationTotalWin">0.00 €</div>
       <button class="btn-action" style="width:100%; font-size:14px; margin-top:10px;" onclick="closeBonusCelebration()">VOLTAR AO JOGO</button>
     </div>
+  </div>
+
+  <div class="modal" id="version-modal">
+    <div class="modal-header">
+      <div class="modal-title">Versão do Jogo</div>
+      <button class="close-btn" type="button" onclick="closeModal('version-modal')" aria-label="Fechar">✕</button>
+    </div>
+    <div class="version-number">v1.00</div>
+    <div class="version-note">Kings of Egypt<br>Versão inicial da série 1.x</div>
+    <button class="btn-action" type="button" style="width:100%;" onclick="closeModal('version-modal')">FECHAR</button>
   </div>
 
   <!-- MENU / ADMIN / RULES MODAL -->
