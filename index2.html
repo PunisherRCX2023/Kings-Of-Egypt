@@ -1770,13 +1770,13 @@
         const extraSpins = scatters >= 5 ? 12 : (scatters === 4 ? 10 : 8);
         freeSpinsLeft += extraSpins;
         document.getElementById('statusBanner').innerText = 'RE-TRIGGER! +' + extraSpins + ' SPINS!';
-        processFreeSpinStep(totalSpinWin);
+        processFreeSpinStep(totalSpinWin, true);
       }
       return;
     }
 
     if (wasFreeSpin) {
-      processFreeSpinStep(totalSpinWin);
+      processFreeSpinStep(totalSpinWin, false);
     } else {
       if (totalSpinWin > 0) {
         balance += totalSpinWin;
@@ -1796,35 +1796,40 @@
     }
   }
 
-  function processFreeSpinStep(totalSpinWin) {
+  function processFreeSpinStep(totalSpinWin, hasRetrigger = false) {
     if (totalSpinWin > 0) showWinPopup(totalSpinWin);
     freeSpinsLeft = Math.max(0, freeSpinsLeft - 1);
-    
-    // ACCUMULATION PROGRESSIVA REAL
+
+    // Acumulação progressiva de todos os prémios do bónus.
     bonusTotalWinAccumulated += totalSpinWin;
     document.getElementById('winDisplay').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
 
-    // FIM LIMPO E RIGOROSO EXATAMENTE NO ZERO
-    if(freeSpinsLeft > 0) {
+    // A sequência automática só continua se esta Free Spin deu prémio
+    // ou se houve um re-trigger. Uma jogada sem prémio termina o bónus.
+    const shouldContinue = totalSpinWin > 0 || hasRetrigger;
+    if (freeSpinsLeft > 0 && shouldContinue) {
       document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
       if (freeSpinTimer) clearTimeout(freeSpinTimer);
       freeSpinTimer = setTimeout(() => {
         freeSpinTimer = null;
         if (inFreeSpins && freeSpinsLeft > 0 && !bonusAwaitingConfirmation) triggerSpin(true);
       }, isTurbo ? 1400 : 1600);
-    } else {
-      balance += bonusTotalWinAccumulated;
-      prizeVaultBalance = Math.max(0, prizeVaultBalance - bonusTotalWinAccumulated);
-      totalPayoutsStat += bonusTotalWinAccumulated;
-      updateUI();
-
-      document.getElementById('statusBanner').innerText = "BÓNUS ENCERRADO";
-      document.getElementById('celebrationTotalWin').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
-      // A celebração é uma janela de fim de bónus e tem de abrir mesmo com inFreeSpins=true.
-      document.getElementById('bonus-celebration-modal').classList.add('active');
-      bonusClosePending = true;
-      playBonusEnd();
+      return;
     }
+
+    // Sem prémio (e sem re-trigger), encerra a sequência mesmo que ainda existissem spins.
+    freeSpinsLeft = 0;
+    if (freeSpinTimer) { clearTimeout(freeSpinTimer); freeSpinTimer = null; }
+    balance += bonusTotalWinAccumulated;
+    prizeVaultBalance = Math.max(0, prizeVaultBalance - bonusTotalWinAccumulated);
+    totalPayoutsStat += bonusTotalWinAccumulated;
+    updateUI();
+
+    document.getElementById('statusBanner').innerText = "BÓNUS ENCERRADO";
+    document.getElementById('celebrationTotalWin').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
+    document.getElementById('bonus-celebration-modal').classList.add('active');
+    bonusClosePending = true;
+    playBonusEnd();
   }
 
   function openBonusRoulette(scatterCount) {
