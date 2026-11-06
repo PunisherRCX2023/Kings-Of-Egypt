@@ -403,6 +403,15 @@
     .deco { z-index: 3; border: 0; border-radius: 0; box-shadow: none; background: transparent; display: flex; align-items: center; justify-content: center; }
     .deco img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 4) rgba(0,0,0,.8)); }
     .d1, .d2, .d3, .d4, .d5 { background: transparent; }
+
+    /* Tempestade de areia subtil sobre o tabuleiro */
+    .sand-particles { position:absolute; inset:0; z-index:8; overflow:hidden; pointer-events:none; opacity:.42; }
+    .sand-particles::before, .sand-particles::after { content:""; position:absolute; inset:-35% -20%; pointer-events:none; background-repeat:repeat; }
+    .sand-particles::before { background-image:radial-gradient(circle, rgba(255,218,142,.9) 0 1px, transparent 1.8px), radial-gradient(circle, rgba(199,137,65,.75) 0 1px, transparent 2px); background-size:83px 71px, 137px 109px; background-position:0 0, 34px 51px; animation:sand-drift 18s linear infinite; }
+    .sand-particles::after { opacity:.55; background-image:radial-gradient(circle, rgba(255,238,190,.8) 0 1.4px, transparent 2.3px), radial-gradient(circle, rgba(170,111,47,.8) 0 1px, transparent 2px); background-size:119px 97px, 173px 131px; background-position:19px 27px, 70px 11px; animation:sand-drift 29s linear infinite reverse; }
+    @keyframes sand-drift { from { transform:translate3d(-3%, -2%, 0); } to { transform:translate3d(8%, 7%, 0); } }
+    @media (prefers-reduced-motion: reduce) { .sand-particles::before, .sand-particles::after { animation:none; } }
+
     .expanding-banner { display: none; z-index: 7; border-radius: calc(var(--u) * 12); border: calc(var(--u) * 4) solid #d9a940; text-align: center; line-height: calc(var(--u) * 92);
       background: linear-gradient(180deg, #2a1a08, #120a04); color: #ffe9a8; font-weight: 800; font-size: calc(var(--u) * 32); box-shadow: 0 0 calc(var(--u) * 24) rgba(255,190,70,.5); margin: 0; padding: 0; }
     .expanding-banner .icon { display: inline-block; height: calc(var(--u) * 76); width: calc(var(--u) * 76); vertical-align: middle; margin-left: calc(var(--u) * 12); }
@@ -511,6 +520,7 @@
 <div id="bgfill" aria-hidden="true"></div>
 <div id="loading"><img src="assets/img/loading_title.png" alt="Kings of Egypt"><div id="ldTxt"><div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div><div class="ld-note">A carregar…</div></div><button type="button" id="ldBtn">TOCAR PARA JOGAR</button></div>
 <div id="game-container">
+  <div class="sand-particles" aria-hidden="true"></div>
   <div class="topbar">
     <button class="sound-trigger" id="soundToggle" type="button" onclick="toggleSound()" aria-label="Desligar som"></button>
     <button type="button" class="tb-btn tb-dark" style="left:calc(var(--u)*186.00);top:calc(var(--u)*12.00);width:calc(var(--u)*200.00);height:calc(var(--u)*72.00);" onclick="openWithdrawModal()">Levantar</button>
@@ -520,7 +530,7 @@
   <div class="grp">
   <div class="clock" id="clock">10:30</div>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
-  <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/eye-of-horus.svg" alt="" aria-hidden="true"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/scarab.svg" alt="" aria-hidden="true"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/ankh.svg" alt="" aria-hidden="true"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/djed-pillar.svg" alt="" aria-hidden="true"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/feather-maat.svg" alt="" aria-hidden="true"></div>
+  <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/eye-of-horus.svg" alt="" aria-hidden="true"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/scarab.svg" alt="" aria-hidden="true"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/ankh.svg" alt="" aria-hidden="true"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/djed-pillar.svg" alt="" aria-hidden="true"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/feather-maat.svg" alt="" aria-hidden="true"></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
   <img class="slot-img" src="assets/img/slot.png" alt="" style="left:calc(var(--u)*0.00);top:calc(var(--u)*322.00);width:calc(var(--u)*768.00);height:calc(var(--u)*537.00);">
   <div class="reels-container" id="reelsContainer" style="left:calc(var(--u)*51.00);top:calc(var(--u)*345.00);width:calc(var(--u)*664.00);height:calc(var(--u)*385.00);"><div class="reel" id="reel-0"><div class="reel-strip" id="strip-0"></div></div><div class="reel" id="reel-1"><div class="reel-strip" id="strip-1"></div></div><div class="reel" id="reel-2"><div class="reel-strip" id="strip-2"></div></div><div class="reel" id="reel-3"><div class="reel-strip" id="strip-3"></div></div><div class="reel" id="reel-4"><div class="reel-strip" id="strip-4"></div></div></div>
