@@ -576,7 +576,7 @@
   </div>
   <div class="grp">
   <div class="clock" id="clock">10:30</div>
-  <button class="version-trigger" type="button" onclick="openModal('version-modal')" aria-label="Ver versão do jogo">v1.46.1</button>
+  <button class="version-trigger" type="button" onclick="openModal('version-modal')" aria-label="Ver versão do jogo">v1.46.2</button>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
   <div class="deco d1" style="left:calc(var(--u)*88.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/eye-of-horus.PNG" alt="" aria-hidden="true"></div><div class="deco d2" style="left:calc(var(--u)*208.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/scarab.PNG" alt="" aria-hidden="true"></div><div class="deco d3" style="left:calc(var(--u)*328.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/Ankh.PNG" alt="" aria-hidden="true"></div><div class="deco d4" style="left:calc(var(--u)*448.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/djed-pillar.PNG" alt="" aria-hidden="true"></div><div class="deco d5" style="left:calc(var(--u)*568.00);top:calc(var(--u)*216.00);width:calc(var(--u)*112.00);height:calc(var(--u)*112.00);"><img src="assets/symbols/feather-maat.PNG" alt="" aria-hidden="true"></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
@@ -718,7 +718,7 @@
       <div class="modal-title">Versão do Jogo</div>
       <button class="close-btn" type="button" onclick="closeModal('version-modal')" aria-label="Fechar">✕</button>
     </div>
-    <div class="version-number">v1.46.1</div>
+    <div class="version-number">v1.46.2</div>
     <div class="version-note">Kings of Egypt<br>Versão inicial da série 1.x</div>
     <button class="btn-action" type="button" style="width:100%;" onclick="closeModal('version-modal')">FECHAR</button>
   </div>
@@ -1119,6 +1119,10 @@
   let collabPercentage = 20;
 
   let isSpinning = false;
+  // Identificador único por jogada: invalida callbacks atrasados de giros anteriores.
+  let spinSequenceId = 0;
+  let activeSpinId = 0;
+  let lastFinishedSpinId = 0;
   let isTurbo = false;
   let inFreeSpins = false;
   let currentSpinIsFree = false;
@@ -1557,6 +1561,8 @@
       updateUI();
     }
 
+    const spinId = ++spinSequenceId;
+    activeSpinId = spinId;
     isSpinning = true;
     bonusBookCount = 0;
     playReelRoll();
@@ -1598,12 +1604,14 @@
     // O motor processa todos os parâmetros enquanto a animação decorre; o resultado
     // nunca é revelado antes de completar 2 segundos desde o clique.
     setTimeout(() => {
+      if (activeSpinId !== spinId || !isSpinning) return;
       let plan;
       try {
         plan = planSpinOutcome(rtp, isBonusBuySpin);
       } catch (error) {
         console.error('Falha ao preparar o giro:', error);
         bonusBuyPending = false;
+        if (activeSpinId === spinId) activeSpinId = 0;
         isSpinning = false;
         paidWinChainActive = false;
         if (paidWinChainTimer) { clearTimeout(paidWinChainTimer); paidWinChainTimer = null; }
@@ -1629,6 +1637,7 @@
       let stopSequenceFinished = false;
 
       const revealOneReel = (r) => {
+        if (activeSpinId !== spinId || !isSpinning) return;
         const reelEl = document.getElementById('reel-' + r);
         const strip = document.getElementById('strip-' + r);
         reelEl.classList.remove('rolling', 'anticipate');
@@ -1654,14 +1663,17 @@
       };
 
       const finishStopSequence = () => {
-        if (stopSequenceFinished) return;
+        if (activeSpinId !== spinId || !isSpinning || stopSequenceFinished) return;
         stopSequenceFinished = true;
         // Se o terceiro scatter aparecer, revela imediatamente os tambores restantes.
         for (let r = stoppedReels; r < 5; r++) revealOneReel(r);
-        setTimeout(() => playPlannedCascades(plan, totalScatters), isTurbo ? 120 : 220);
+        setTimeout(() => {
+          if (activeSpinId === spinId && isSpinning) playPlannedCascades(plan, totalScatters, spinId);
+        }, isTurbo ? 120 : 220);
       };
 
       const stopNextReel = (r) => {
+        if (activeSpinId !== spinId || !isSpinning) return;
         if (stopSequenceFinished || r >= 5) {
           finishStopSequence();
           return;
@@ -1713,14 +1725,16 @@
     }
   }
 
-  function playPlannedCascades(plan, scatters) {
+  function playPlannedCascades(plan, scatters, spinId) {
+    if (activeSpinId !== spinId || !isSpinning) return;
     const steps = plan.cascades || [];
     let index = 0;
     let shownWin = 0;
     function nextCascade() {
+      if (activeSpinId !== spinId || !isSpinning) return;
       if (index >= steps.length) {
         renderSpinGrid(plan.finalGrid, []);
-        setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0), isTurbo ? 60 : 140);
+        setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0, spinId), isTurbo ? 60 : 140);
         return;
       }
       const step = steps[index];
@@ -1743,7 +1757,7 @@
     }
     if (!steps.length) {
       renderSpinGrid(plan.finalGrid, []);
-      setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0), isTurbo ? 60 : 140);
+      setTimeout(() => finishSpin(scatters, plan.totalWin, steps.length > 0, spinId), isTurbo ? 60 : 140);
     } else {
       nextCascade();
     }
@@ -1764,7 +1778,11 @@
     }
   }
 
-  function finishSpin(scatters, totalSpinWin, hasWinningLine = totalSpinWin > 0) {
+  function finishSpin(scatters, totalSpinWin, hasWinningLine = totalSpinWin > 0, spinId = activeSpinId) {
+    // Só o callback pertencente ao giro ativo pode liquidar e concluir essa jogada.
+    if (!spinId || activeSpinId !== spinId || lastFinishedSpinId === spinId) return;
+    lastFinishedSpinId = spinId;
+    activeSpinId = 0;
     isSpinning = false;
     const wasFreeSpin = currentSpinIsFree;
     const wasAutoSpin = currentSpinIsAuto;
