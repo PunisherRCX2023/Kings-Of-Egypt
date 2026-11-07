@@ -242,6 +242,19 @@
     return 10*p*p*p*q*q + 5*p*p*p*p*q + p*p*p*p*p;
   }
 
+  // ===== Volatilidade (Muito Baixo … Muito Alto) =====
+  // hi = peso de cada símbolo alto (os baixos pesam ~10); cons = multiplicador dos prémios de consolação;
+  // rr = probabilidade de refazer uma jogada com prémio pequeno (menos prémios pequenos = mais secas e cofre maior).
+  const VOL_LEVELS = [
+    { n: 'Muito Baixo', hi: 2.8, cons: 1.5,  rr: 0 },
+    { n: 'Baixo',       hi: 3.5, cons: 1.2,  rr: 0 },
+    { n: 'Médio',       hi: 4.2, cons: 1.0,  rr: 0.10 },
+    { n: 'Alto',        hi: 5.2, cons: 0.75, rr: 0.25 },
+    { n: 'Muito Alto',  hi: 6.5, cons: 0.5,  rr: 0.40 }
+  ];
+  function getVol() { const el = document.getElementById('inputVolatility'); const i = el ? Number(el.value) - 1 : 2; return VOL_LEVELS[Math.max(0, Math.min(4, i))]; }
+  let pendingFreeSpins = 8;
+
   function generateReelSymbols(rtp, fixedBookRow) {
     const reelSyms = [];
     let highSymbolUsedInReel = null;
@@ -260,8 +273,8 @@
       const weighted = [];
       pool.forEach(symbol => {
         const high = HIGH_SYMBOLS.includes(symbol);
-        const weight = high ? rtpFactor : (2 - rtpFactor);
-        for (let n = 0; n < Math.max(1, Math.round(weight * 10)); n++) weighted.push(symbol);
+        const weight = high ? getVol().hi * rtpFactor : 10 * (2 - rtpFactor);
+        for (let n = 0; n < Math.max(1, Math.round(weight * 2)); n++) weighted.push(symbol);
       });
       const sym = weighted[Math.floor(Math.random() * weighted.length)];
       if (HIGH_SYMBOLS.includes(sym)) highSymbolUsedInReel = sym;
@@ -308,6 +321,10 @@
     const cap = maxAllowedWin(avail, bet);
     let grid = [0,1,2,3,4].map(() => generateReelSymbols(rtp));
     let w = evalGrid(grid);
+    if (!inFreeSpins && w > 0 && w < 2 * bet && Math.random() < getVol().rr) {   // volatilidade: refaz alguns prémios pequenos
+      const bk = grid.map(s => s.indexOf('📖')); const g2 = bk.map(b => generateReelSymbols(rtp, b)); const w2 = evalGrid(g2);
+      if (w2 <= cap + 1e-9) { grid = g2; w = w2; }
+    }
     if (w <= cap + 1e-9) return maybeConsolation(grid, w, rtp, cap, bet);
     const books = grid.map(s => s.indexOf('📖'));
     let best = grid, bw = w;
@@ -324,7 +341,7 @@
   let dryStreak = 0;
   function consolationChance() {
     const max = Number(document.getElementById('inputSmallWin').value) / 100;
-    return Math.min(max, 0.10 + 0.14 * dryStreak);
+    return Math.min(1, Math.min(max, 0.10 + 0.14 * dryStreak) * getVol().cons);
   }
   function maybeConsolation(grid, w, rtp, cap, bet) {
     if (inFreeSpins || w > 0 || Math.random() >= consolationChance()) return grid;
@@ -354,12 +371,49 @@
     const need = 2 - have;
     const reels = [0, 1, 2, 3].filter(i => books[i] < 0).sort(() => Math.random() - 0.5);
     if (reels.length < need) return grid;
-    const g = grid.map(r => r.slice());
+    const vault = Math.max(0, getVault());
+    const cap = maxAllowedWin(vault, getTotalBetCash());
+    const ok = x => evalGrid(x) <= Math.max(cap, evalGrid(grid)) + 1e-9;
+    let g = grid.map(r => r.slice());
     for (let k = 0; k < need; k++) g[reels[k]][Math.floor(Math.random() * 3)] = '📖';
-    const cap = maxAllowedWin(Math.max(0, getVault()), getTotalBetCash());
-    return evalGrid(g) <= Math.max(cap, evalGrid(grid)) + 1e-9 ? g : grid;
+    if (!ok(g)) return grid;
+    // de vez em quando a 3.ª Pirâmide cai e o tease vira bónus (só com cofre >= 100 €; a chance cresce até ao cofre de 300 €)
+    if (vault >= VAULT_MIN_FOR_BOOKS && Math.random() < teaseBonusChance() * Math.min(1, vault / 300)) {
+      const free = [0, 1, 2, 3, 4].filter(i => !g[i].includes('📖'));
+      if (free.length) { const g3 = g.map(r => r.slice()); g3[free[Math.floor(Math.random() * free.length)]][Math.floor(Math.random() * 3)] = '📖'; if (ok(g3)) g = g3; }
+    }
+    return g;
   }
-  function planSpinGrid(rtp) { return applyTease(planSpinGridBase(rtp)); }
+  function teaseBonusChance() { const el = document.getElementById('inputTeaseBonus'); return el ? Number(el.value) / 100 : 0; }
+  function planSpinGrid(rtp) {
+    if (forcedBookCount > 0) { const n = forcedBookCount; forcedBookCount = 0; return planForcedGrid(rtp, n); }
+    return applyTease(planSpinGridBase(rtp));
+  }
+
+  // ===== Compra de bónus: jogada grátis com 3 (garantido), 4 ou 5 Pirâmides; 4 e 5 crescem com o cofre =====
+  let forcedBookCount = 0;
+  function bonusBuyScatterCount() {
+    const vf = Math.min(1, Math.max(0, getVault()) / 500);
+    const r = Math.random();
+    if (r < 0.10 * vf) return 5;
+    if (r < 0.35 * vf) return 4;
+    return 3;
+  }
+  function planForcedGrid(rtp, n) {
+    const bet = getTotalBetCash();
+    const cap = maxAllowedWin(Math.max(0, getVault()), bet);
+    const reels = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, n);
+    const rows = [0, 1, 2, 3, 4].map(r => reels.includes(r) ? Math.floor(Math.random() * 3) : -1);
+    let best = null, bw = Infinity;
+    for (let i = 0; i < 80; i++) {
+      const g = rows.map(b => generateReelSymbols(rtp, b));
+      const w = evalGrid(g);
+      if (w <= cap + 1e-9) return g;
+      if (w < bw) { best = g; bw = w; }
+    }
+    return best;
+  }
+  function startBoughtBonusSpin() { forcedBookCount = bonusBuyScatterCount(); triggerSpin(true); }
 
 
   function initGrid() {
@@ -596,6 +650,7 @@
   }
 
   function finishSpin(scatters) {
+    if (scatters >= 3 && !inFreeSpins) pendingFreeSpins = scatters === 3 ? 8 : (scatters === 4 ? 10 : 12);
     isSpinning = false;
     let baseWin = 0;
 
@@ -737,7 +792,7 @@
     if (rouletteTimer) { clearTimeout(rouletteTimer); rouletteTimer = null; }
     confirmBtn.style.display = 'none';
     display.classList.remove('picked');
-    msg.innerText = 'Parabéns, tem 8 spins grátis! A sortear o símbolo expansível...';
+    msg.innerText = 'Parabéns, tem ' + pendingFreeSpins + ' spins grátis! A sortear o símbolo expansível...';
     modal.classList.add('active');
     playBonusStart();
 
@@ -750,7 +805,7 @@
       if (el >= TOTAL) {
         rouletteTimer = null; expandingSymbol = chosen;
         display.innerHTML = symHTML(chosen); display.classList.add('picked');
-        msg.innerText = 'Parabéns, tem 8 spins grátis e o seu símbolo expansível é:';
+        msg.innerText = 'Parabéns, tem ' + pendingFreeSpins + ' spins grátis e o seu símbolo expansível é:';
         tone(784, .25, 'triangle', .06); tone(1047, .45, 'triangle', .06, .12);
         confirmBtn.style.display = 'block';
         return;
@@ -766,7 +821,7 @@
   function startBonusWithSymbol() {
     closeModal('bonus-roulette-modal');
     inFreeSpins = true;
-    freeSpinsLeft = 8;
+    freeSpinsLeft = pendingFreeSpins;
     bonusTotalWinAccumulated = 0;
     
     document.getElementById('expSymbolIcon').innerHTML = symHTML(expandingSymbol);
@@ -902,7 +957,8 @@
     totalBetStat += cost;
     updateUI();
     closeModal('bonusbuy-modal');
-    openBonusRoulette();
+    if (autoSpinActive) stopAutoSpin();
+    startBoughtBonusSpin();
   }
 
   function switchTab(tabId, clickedButton) {
@@ -953,7 +1009,7 @@
     const r = Number(document.getElementById('inputRetriggerProb').value);
     const vault = getVault();
     const gate = vault >= VAULT_MIN_FOR_BOOKS;
-    el.innerHTML = `<b>Valores usados pelo motor</b><br>• Jogo normal: ${b}% de Pirâmide por tambor → Bónus (3+ Pirâmides) em ${(bonusOdds(b).pr * 100).toFixed(2)}% dos spins (≈ 1 em ${bonusOdds(b).n}).<br>• Free Spins: ${r}% por tambor → Re-trigger em ${(bonusOdds(r).pr * 100).toFixed(2)}% dos spins (≈ 1 em ${bonusOdds(r).n}).<br>• Pirâmides só surgem com cofre ≥ ${VAULT_MIN_FOR_BOOKS.toFixed(2)} €: <b>${gate ? 'ATIVO' : 'INATIVO'}</b> (cofre ${vault.toFixed(2)} €).<br>• Prémios por jogada: máx. ${(VAULT_PAYOUT_FRACTION*100)}% do cofre; escalões — até 5× a aposta sempre; até 20× com cofre ≥ 10 € (e ≥ 50× aposta); até 100× com cofre ≥ 40 € (≥ 150× aposta); acima disso com cofre ≥ 100 € (≥ 400× aposta). <br>• Consolação: após jogadas sem prémio, a chance de um prémio pequeno (0,5× a 3× a aposta, dentro do cofre) sobe até ${document.getElementById('inputSmallWin').value}%.<br>• Agora: máx. ${maxAllowedWin(Math.max(0,vault), getTotalBetCash()).toFixed(2)} € por jogada.`;
+    el.innerHTML = `<b>Valores usados pelo motor</b><br>• Jogo normal: ${b}% de Pirâmide por tambor → Bónus (3+ Pirâmides) em ${(bonusOdds(b).pr * 100).toFixed(2)}% dos spins (≈ 1 em ${bonusOdds(b).n}).<br>• Free Spins: ${r}% por tambor → Re-trigger em ${(bonusOdds(r).pr * 100).toFixed(2)}% dos spins (≈ 1 em ${bonusOdds(r).n}).<br>• Pirâmides só surgem com cofre ≥ ${VAULT_MIN_FOR_BOOKS.toFixed(2)} €: <b>${gate ? 'ATIVO' : 'INATIVO'}</b> (cofre ${vault.toFixed(2)} €).<br>• Prémios por jogada: máx. ${(VAULT_PAYOUT_FRACTION*100)}% do cofre; escalões — até 5× a aposta sempre; até 20× com cofre ≥ 10 € (e ≥ 50× aposta); até 100× com cofre ≥ 40 € (≥ 150× aposta); acima disso com cofre ≥ 100 € (≥ 400× aposta). <br>• Consolação: após jogadas sem prémio, a chance de um prémio pequeno (0,5× a 3× a aposta, dentro do cofre) sobe até ${document.getElementById('inputSmallWin').value}%.<br>• Agora: máx. ${maxAllowedWin(Math.max(0,vault), getTotalBetCash()).toFixed(2)} € por jogada.` + extraProbNote();
   }
 
   function updateSmallWinDisplay(val) {
@@ -963,7 +1019,7 @@
 
 
   const MASTER_PASS = 'after';
-  const CFG_IDS = ['inputRtp', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease'];
+  const CFG_IDS = ['inputRtp', 'inputVolatility', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease', 'inputTeaseBonus'];
   function setCfgLocked(locked) {
     CFG_IDS.forEach(function (id) { document.getElementById(id).disabled = locked; });
     document.getElementById('cfgLockStatus').innerText = locked ? '🔒 Configurações bloqueadas — apenas o técnico pode alterar' : '🔓 Configurações desbloqueadas pelo técnico';
@@ -989,6 +1045,17 @@
   }
   function updateReserveDisplay(v) { document.getElementById('valReserve').innerText = v + '%'; updateUI(); }
   function updateTeaseDisplay(v) { document.getElementById('valTease').innerText = v + '%'; }
+
+  function updateVolatilityDisplay(v) { document.getElementById('valVolatility').innerText = VOL_LEVELS[Number(v) - 1].n; refreshProbNote(); }
+  function updateTeaseBonusDisplay(v) { document.getElementById('valTeaseBonus').innerText = v + '%'; refreshProbNote(); }
+  function extraProbNote() {
+    const v = getVol(), t = Number(document.getElementById('inputTease').value), tb = Number(document.getElementById('inputTeaseBonus').value);
+    const vault = Math.max(0, getVault()), vf = Math.min(1, vault / 300), bf = Math.min(1, vault / 500);
+    const extra = vault >= VAULT_MIN_FOR_BOOKS ? (t / 100) * 0.95 * (tb / 100) * vf : 0;
+    return `<br>• Volatilidade <b>${v.n}</b>: peso dos símbolos altos ${v.hi}, ajuda de prémios pequenos ×${v.cons}, ${Math.round(v.rr * 100)}% dos prémios pequenos refeitos.` +
+      `<br>• Teases: ${t}% das jogadas; ${tb}% viram bónus se o cofre permitir → bónus extra ${extra > 0 ? '≈ 1 em ' + Math.round(1 / extra) + ' jogadas (agora)' : 'inativo (cofre abaixo de ' + VAULT_MIN_FOR_BOOKS + ' €)'}.` +
+      `<br>• Compra de bónus: 3 Pirâmides garantidas; 4 com ${(25 * bf).toFixed(0)}% e 5 com ${(10 * bf).toFixed(0)}% (sobe com o cofre até 500 €); 8 / 10 / 12 Free Spins.`;
+  }
 
 
   function updateCollabCommission(val) {
@@ -1053,6 +1120,8 @@
   soundFace();
   syncBetBoxes();
   lockCfg(true);
+  updateVolatilityDisplay(document.getElementById('inputVolatility').value);
+  updateTeaseBonusDisplay(document.getElementById('inputTeaseBonus').value);
   updateTeaseDisplay(document.getElementById('inputTease').value);
   updateReserveDisplay(document.getElementById('inputReserve').value);
   updateSmallWinDisplay(document.getElementById('inputSmallWin').value);
@@ -1065,6 +1134,15 @@
     while (m.firstChild) card.appendChild(m.firstChild);
     m.appendChild(card); document.body.appendChild(m);
   });
+
+  // Auto-Spin: o botão mostra as voltas que restam
+  const AUTO_FACE = document.getElementById('autoBtn').innerHTML;
+  function syncAutoBtn() {
+    const b = document.getElementById('autoBtn'); const key = autoSpinActive ? String(autoSpinCount) : 'off';
+    if (b.dataset.s === key) return; b.dataset.s = key;
+    b.innerHTML = autoSpinActive ? '<b class="auto-num">' + autoSpinCount + '</b>' : AUTO_FACE; b.classList.toggle('counting', autoSpinActive);
+  }
+  setInterval(syncAutoBtn, 150);
 
   // Relógio (canto superior direito)
   (function () { const c = document.getElementById('clock');
