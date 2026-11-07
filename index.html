@@ -9,7 +9,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Kings of Egypt</title>
   <style>
-
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
       background-color: #08080a;
@@ -547,7 +546,7 @@
     .cofre-hist .cbox .history-box { font-size: 11px; color: #ddd; max-height: 120px; overflow: auto; }
     .cofre-hist .btn-action { margin-top: 4px; padding: 8px 6px; font-size: 11px; }
     .vault-dep { margin-top: 8px; }
-  </style>
+</style>
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>
@@ -580,7 +579,7 @@
   <div class="clock" id="clock">10:30</div>
   <div class="ver" id="gameVersion">v1.47</div>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
-  <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/eye-of-horus.PNG" alt="" draggable="false"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/djed-pillar.PNG" alt="" draggable="false"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/Ankh.PNG" alt="" draggable="false"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/scarab.PNG" alt="" draggable="false"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/feather-maat.PNG" alt="" draggable="false"></div>
+  <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/eye-of-horus.svg" alt="" draggable="false"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/scarab.svg" alt="" draggable="false"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/ankh.svg" alt="" draggable="false"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/djed-pillar.svg" alt="" draggable="false"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/feather-maat.svg" alt="" draggable="false"></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
   <img class="slot-img" src="assets/img/slot.png" alt="" style="left:calc(var(--u)*0.00);top:calc(var(--u)*322.00);width:calc(var(--u)*768.00);height:calc(var(--u)*537.00);">
   <div class="reels-container" id="reelsContainer" style="left:calc(var(--u)*51.00);top:calc(var(--u)*345.00);width:calc(var(--u)*664.00);height:calc(var(--u)*385.00);"><div class="reel" id="reel-0"><div class="reel-strip" id="strip-0"></div></div><div class="reel" id="reel-1"><div class="reel-strip" id="strip-1"></div></div><div class="reel" id="reel-2"><div class="reel-strip" id="strip-2"></div></div><div class="reel" id="reel-3"><div class="reel-strip" id="strip-3"></div></div><div class="reel" id="reel-4"><div class="reel-strip" id="strip-4"></div></div></div>
@@ -1128,7 +1127,7 @@
     'A': 'assets/img/A.png', '🤴': 'assets/img/K.png', 'Q': 'assets/img/Q.png', 'J': 'assets/img/J.png', '10': 'assets/img/10.png'
   };
   const IMG_UI = ['assets/img/background.jpg', 'assets/img/title.png', 'assets/img/slot.png', 'assets/img/button_play.png', 'assets/img/box_value.png', 'assets/img/loading_title.png',
-    'assets/img/scatter.png', 'assets/img/anubis.png', 'assets/img/horus.png', 'assets/img/osiris.png', 'assets/img/ra.png'];
+    'assets/img/eye-of-horus.svg', 'assets/img/scarab.svg', 'assets/img/ankh.svg', 'assets/img/djed-pillar.svg', 'assets/img/feather-maat.svg'];
   function symHTML(sym) { return '<img class="si" src="' + IMG[sym] + '" alt="" draggable="false">'; }
   function initSymbolSlots() {
     document.getElementById('expSymbolIcon').innerHTML = symHTML('📖');
