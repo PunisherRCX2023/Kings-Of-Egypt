@@ -185,6 +185,119 @@
     return function stop() { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
   }
 
+  // ===== Guardar e restaurar o jogo (fica guardado no navegador, mesmo que o jogo seja desligado) =====
+  const SAVE_KEY = 'kingsOfEgypt.save';
+  const SAVE_INPUTS = ['inputRtp', 'inputVolatility', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease', 'inputTeaseBonus', 'inputCoinValueIndex', 'inputCoinsPerLine'];
+  let saveBlocked = true;          // só passa a false depois de restaurar (evita gravar o estado inicial por cima do guardado)
+  let pendingSpin = null;          // giro em curso: a grelha já decidida fica guardada, para o resultado nunca se perder
+  let pendingExpandChoice = null;  // símbolo expansivo já sorteado
+  let restoredState = null;
+  const logOut = a => a.map(x => ({ t: x.t.getTime(), v: x.v }));
+  const logIn = a => (a || []).map(x => ({ t: new Date(x.t), v: Number(x.v) || 0 }));
+  function gameSnapshot() {
+    const inputs = {}; SAVE_INPUTS.forEach(id => { const el = document.getElementById(id); if (el) inputs[id] = el.value; });
+    return {
+      v: 1, savedAt: Date.now(), version: (typeof GAME_VERSION !== 'undefined' ? GAME_VERSION : ''),
+      balance, totalBetStat, totalPayoutsStat, totalDepStat, totalWithStat, vaultTopUps, dryStreak,
+      depositsHistory, withdrawalsHistory, depositsLog: logOut(depositsLog), withdrawalsLog: logOut(withdrawalsLog), vaultTopUpLog: logOut(vaultTopUpLog),
+      adminPassword, depositPassword, withdrawPassword, collabPercentage, isTurbo, soundEnabled, selectedAutoSpinsOption,
+      inputs, grid: gridState,
+      bonus: { inFreeSpins, freeSpinsLeft, bonusTotalWinAccumulated, expandingSymbol, pendingFreeSpins, pendingExpandChoice,
+        roulette: document.getElementById('bonus-roulette-modal').classList.contains('active'), celebration: bonusClosePending },
+      pendingSpin
+    };
+  }
+  function saveGame() {
+    if (saveBlocked) return;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(gameSnapshot())); } catch (e) {}
+  }
+  function renderGrid(grid) {
+    for (let r = 0; r < 5; r++) {
+      const strip = document.getElementById('strip-' + r); strip.innerHTML = '';
+      grid[r].forEach(sym => {
+        const div = document.createElement('div'); div.className = 'symbol';
+        if (sym === '📖') div.classList.add('book-glow');
+        div.innerHTML = symHTML(sym); div.dataset.sym = sym; strip.appendChild(div);
+      });
+    }
+  }
+  const validGrid = g => Array.isArray(g) && g.length === 5 && g.every(r => Array.isArray(r) && r.length === 3 && r.every(s => IMG[s]));
+  function restoreGame() {
+    let raw = null; try { raw = localStorage.getItem(SAVE_KEY); } catch (e) {}
+    if (!raw) return false;
+    let s; try { s = JSON.parse(raw); } catch (e) { return false; }
+    if (!s || s.v !== 1) return false;
+    const num = (x, d) => (typeof x === 'number' && isFinite(x)) ? x : d;
+    balance = num(s.balance, 0); totalBetStat = num(s.totalBetStat, 0); totalPayoutsStat = num(s.totalPayoutsStat, 0);
+    totalDepStat = num(s.totalDepStat, 0); totalWithStat = num(s.totalWithStat, 0); vaultTopUps = num(s.vaultTopUps, 0); dryStreak = num(s.dryStreak, 0);
+    depositsHistory = Array.isArray(s.depositsHistory) ? s.depositsHistory : []; withdrawalsHistory = Array.isArray(s.withdrawalsHistory) ? s.withdrawalsHistory : [];
+    [[depositsLog, s.depositsLog], [withdrawalsLog, s.withdrawalsLog], [vaultTopUpLog, s.vaultTopUpLog]].forEach(p => { p[0].length = 0; logIn(p[1]).forEach(x => p[0].push(x)); });
+    if (typeof s.adminPassword === 'string') adminPassword = s.adminPassword;
+    if (typeof s.depositPassword === 'string') depositPassword = s.depositPassword;
+    if (typeof s.withdrawPassword === 'string') withdrawPassword = s.withdrawPassword;
+    selectedAutoSpinsOption = num(s.selectedAutoSpinsOption, 10);
+    // definições (sliders) -> dispara o evento "input" para atualizar também os textos de cada slider
+    Object.keys(s.inputs || {}).forEach(id => { const el = document.getElementById(id); if (el) { el.value = s.inputs[id]; el.dispatchEvent(new Event('input')); } });
+    updateCollabCommission(num(s.collabPercentage, 20));
+    if (s.isTurbo && !isTurbo) toggleTurbo();
+    if (s.soundEnabled === false && soundEnabled) toggleSound();
+    if (validGrid(s.grid)) { gridState = s.grid; renderGrid(gridState); }
+    const b = s.bonus || {};
+    pendingFreeSpins = num(b.pendingFreeSpins, 8); pendingExpandChoice = b.pendingExpandChoice || null;
+    if (b.inFreeSpins) {
+      inFreeSpins = true; freeSpinsLeft = num(b.freeSpinsLeft, 0); bonusTotalWinAccumulated = num(b.bonusTotalWinAccumulated, 0); expandingSymbol = b.expandingSymbol || '';
+      if (expandingSymbol) { document.getElementById('expSymbolIcon').innerHTML = symHTML(expandingSymbol); document.getElementById('expandingSymbolBanner').style.display = 'block'; }
+      disableBetControls(true); document.getElementById('spinBtn').classList.add('disabled');
+      document.getElementById('statusBanner').innerText = 'FREE SPINS: ' + freeSpinsLeft + ' RESTANTES';
+      document.getElementById('winDisplay').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
+    }
+    restoredState = { pendingSpin: validGrid(s.pendingSpin && s.pendingSpin.grid) ? s.pendingSpin : null, roulette: !!b.roulette, celebration: !!b.celebration };
+    updateBetControls(); updateUI();
+    return true;
+  }
+  // Depois do "Tocar para jogar": continua exatamente onde o jogo ficou (giro, roleta, bónus ou fim de bónus)
+  function resumeGame() {
+    const st = restoredState; restoredState = null; if (!st) return;
+    if (st.pendingSpin) {
+      gridState = st.pendingSpin.grid; renderGrid(gridState);
+      isSpinning = true; disableBetControls(true); document.getElementById('spinBtn').classList.add('disabled');
+      const sc = gridState.filter(r => r.includes('📖')).length;
+      setTimeout(() => finishSpinSaved(sc), 400); return;
+    }
+    if (st.celebration) {
+      document.getElementById('celebrationTotalWin').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
+      document.getElementById('bonus-celebration-modal').classList.add('active'); bonusClosePending = true; return;
+    }
+    if (st.roulette) { openBonusRoulette(); return; }
+    if (inFreeSpins && freeSpinsLeft > 0) setTimeout(() => triggerSpin(true), 800);
+  }
+  function finishSpinSaved(scatters) {   // o resultado é aplicado de uma só vez e só depois o jogo é guardado
+    saveBlocked = true;
+    try { finishSpin(scatters); } finally { saveBlocked = false; }
+    pendingSpin = null; saveGame();
+  }
+  // Backup em ficheiro (técnico): exportar, importar e apagar os dados guardados
+  function exportBackup() {
+    downloadText('kings_of_egypt_backup_' + stamp() + '.json', JSON.stringify(gameSnapshot(), null, 1));
+  }
+  function importBackup(input) {
+    const f = input.files && input.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = function () {
+      let s; try { s = JSON.parse(String(rd.result).replace(/^\ufeff/, '')); } catch (e) { alert('Ficheiro de backup inválido!'); return; }
+      if (!s || s.v !== 1 || typeof s.balance !== 'number') { alert('Ficheiro de backup inválido!'); return; }
+      if (!confirm('Restaurar este backup? Os dados atuais serão substituídos.')) return;
+      saveBlocked = true; try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) { alert('Não foi possível guardar o backup.'); return; }
+      location.reload();
+    };
+    rd.readAsText(f); input.value = '';
+  }
+  function clearSavedData() {
+    if (!confirm('Apagar TODOS os dados guardados (saldo, histórico, cofre e definições)? Esta ação não pode ser desfeita.')) return;
+    saveBlocked = true; try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    location.reload();
+  }
+
 
   const COIN_VALUES = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00, 1.50, 2.00, 2.50];
 
@@ -215,7 +328,7 @@
     'A': 'assets/img/A.png', '🤴': 'assets/img/K.png', 'Q': 'assets/img/Q.png', 'J': 'assets/img/J.png', '10': 'assets/img/10.png'
   };
   const IMG_UI = ['assets/img/background.jpg', 'assets/img/title.png', 'assets/img/slot.png', 'assets/img/button_play.png', 'assets/img/box_value.png', 'assets/img/loading_title.png',
-    'assets/img/scatter.png', 'assets/img/anubis.png', 'assets/img/horus.png', 'assets/img/osiris.png', 'assets/img/ra.png'];
+    'assets/img/eye-of-horus.svg', 'assets/img/scarab.svg', 'assets/img/ankh.svg', 'assets/img/djed-pillar.svg', 'assets/img/feather-maat.svg'];
   function symHTML(sym) { return '<img class="si" src="' + IMG[sym] + '" alt="" draggable="false">'; }
   function initSymbolSlots() {
     document.getElementById('expSymbolIcon').innerHTML = symHTML('📖');
@@ -549,6 +662,7 @@
 
   function updateUI() {
     refreshProbNote();
+    saveGame();
     document.getElementById('balanceDisplay').innerText = balance.toFixed(2) + ' €';
     document.getElementById('admTotalBet').innerText = totalBetStat.toFixed(2) + ' €';
     document.getElementById('admTotalPayouts').innerText = totalPayoutsStat.toFixed(2) + ' €';
@@ -629,6 +743,7 @@
     const rtp = parseInt(document.getElementById('inputRtp').value);
     // 1) A máquina calcula TUDO antes de mostrar: RTP, volatilidade, teases e o cofre de prémios (a grelha final já respeita o cofre)
     const plannedGrid = planSpinGrid(rtp);
+    pendingSpin = { grid: plannedGrid }; saveGame();
     // 2) Os tambores começam a rolar logo (de cima para baixo) e o último pára aos 2 s (Turbo: mais rápido)
     const T = isTurbo ? SPIN_MS_TURBO : SPIN_MS;
     const stagger = isTurbo ? 60 : 150;
@@ -667,7 +782,7 @@
         playReelStop(r);
         spinsDone++;
         if (spinsDone === 5) {
-          setTimeout(() => finishSpin(totalScatters), FIN);
+          setTimeout(() => finishSpinSaved(totalScatters), FIN);
         }
       }, stopAt[r]);
     }
@@ -874,7 +989,8 @@
     playBonusStart();
 
     const validExp = PAY_DATA.filter(p => p.icon !== '📖');
-    const chosen = validExp[Math.floor(Math.random() * validExp.length)].icon;
+    const chosen = pendingExpandChoice || validExp[Math.floor(Math.random() * validExp.length)].icon;
+    pendingExpandChoice = chosen;
     const TOTAL = 5000, t0 = performance.now();
     let last = '';
     function step() {
@@ -900,6 +1016,7 @@
     inFreeSpins = true;
     freeSpinsLeft = pendingFreeSpins;
     bonusTotalWinAccumulated = 0;
+    pendingExpandChoice = null;
     
     document.getElementById('expSymbolIcon').innerHTML = symHTML(expandingSymbol);
     document.getElementById('expandingSymbolBanner').style.display = 'block';
@@ -908,6 +1025,7 @@
   }
 
   function closeBonusCelebration() {
+    bonusClosePending = false;
     closeModal('bonus-celebration-modal');
     inFreeSpins = false;
     expandingSymbol = '';
@@ -1106,6 +1224,7 @@
     document.getElementById('lockCfgBtn').style.display = locked ? 'none' : 'block';
     document.getElementById('resetCounterBtn').style.display = locked ? 'none' : 'block';
     document.getElementById('cfgVaultDep').style.display = locked ? 'none' : 'block';
+    document.getElementById('cfgBackup').style.display = locked ? 'none' : 'block';
   }
   function unlockCfg() {
     const p = document.getElementById('cfgTechPass');
@@ -1241,8 +1360,14 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
-  const GAME_VERSION = 'v1.47';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  const GAME_VERSION = 'v1.48';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
   document.getElementById('gameVersion').textContent = GAME_VERSION;
+  restoreGame();
+  saveBlocked = false; saveGame();
+  setInterval(saveGame, 3000);
+  window.addEventListener('pagehide', saveGame);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) saveGame(); });
+  let _sv = null; document.addEventListener('input', function () { clearTimeout(_sv); _sv = setTimeout(saveGame, 300); });
   startSand(document.getElementById('sandGame'));
   const stopLoadSand = startSand(document.getElementById('sandLoad'));
 
@@ -1281,6 +1406,6 @@
     setTimeout(ready, 8000);
     btn.addEventListener('click', function () {
       musicWanted = true; syncMusic(); getAudioContext(); unlockAudio();
-      ld.style.opacity = '0'; setTimeout(function () { stopLoadSand(); ld.remove(); }, 650);
+      ld.style.opacity = '0'; setTimeout(function () { stopLoadSand(); ld.remove(); resumeGame(); }, 650);
     });
   })();
