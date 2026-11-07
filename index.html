@@ -400,7 +400,9 @@
 
     /* linha de ícones decorativos */
     .deco { z-index: 3; border-radius: calc(var(--u) * 10); border: calc(var(--u) * 4) solid #d9a940; box-shadow: inset 0 0 calc(var(--u) * 18) rgba(0,0,0,.65), 0 calc(var(--u) * 4) calc(var(--u) * 10) rgba(0,0,0,.8); display: flex; align-items: center; justify-content: center; }
-    .deco svg { width: 74%; height: 74%; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
+    /* Os símbolos decorativos são carregados exclusivamente dos ficheiros em assets/img. */
+    .deco > svg, .deco > canvas { display: none !important; }
+    .deco > img { width: 74%; height: 74%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
     .d1 { background: radial-gradient(circle at 50% 40%, #2f63b8, #0b1d47); } .d2 { background: radial-gradient(circle at 50% 40%, #c8601f, #5a1d08); }
     .d3 { background: radial-gradient(circle at 50% 40%, #2a64b0, #0a1f4a); } .d4 { background: radial-gradient(circle at 50% 40%, #2c9a62, #0c3d27); }
     .d5 { background: radial-gradient(circle at 50% 40%, #1fa0a8, #0a3a44); }
@@ -528,7 +530,7 @@
     /* ===== v1.47 ===== */
     .ver { left: calc(var(--u) * 14); top: calc(var(--u) * 104); z-index: 6; padding: calc(var(--u) * 2) calc(var(--u) * 14); font-size: calc(var(--u) * 24); color: #f4ead0; background: rgba(8,8,10,.72); border-radius: calc(var(--u) * 8); }
     .title-img, .deco, .expanding-banner, .clock, .ver { transform: translateY(calc(max(0px, calc(var(--app-h) - var(--u) * 1376)) * -.5)); }
-    .deco img { width: 74%; height: 74%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
+    /* Mantém as imagens dos cinco símbolos com proporção e nitidez. */
     .sand { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
     #loading > *:not(.sand) { position: relative; z-index: 1; }
     .reel-strip { will-change: transform; transition: filter .25s; }
