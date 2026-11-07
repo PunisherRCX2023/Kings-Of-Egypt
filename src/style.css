@@ -514,3 +514,25 @@
     .btn-autospin-trigger.counting { box-shadow: inset 0 calc(var(--u) * -6) calc(var(--u) * 10) rgba(120,70,0,.5), 0 0 calc(var(--u) * 22) rgba(255,230,120,.8); }
     .vol-scale { display: flex; justify-content: space-between; font-size: 9px; color: #8f9b94; margin-top: 2px; }
     .vol-scale span { flex: 1; text-align: center; }
+
+    /* ===== v1.47 ===== */
+    .ver { left: calc(var(--u) * 14); top: calc(var(--u) * 104); z-index: 6; padding: calc(var(--u) * 2) calc(var(--u) * 14); font-size: calc(var(--u) * 24); color: #f4ead0; background: rgba(8,8,10,.72); border-radius: calc(var(--u) * 8); }
+    .title-img, .deco, .expanding-banner, .clock, .ver { transform: translateY(calc(max(0px, calc(var(--app-h) - var(--u) * 1376)) * -.5)); }
+    .deco img { width: 74%; height: 74%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
+    .sand { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    #loading > *:not(.sand) { position: relative; z-index: 1; }
+    .reel-strip { will-change: transform; transition: filter .25s; }
+    .reel.rolling .reel-strip { filter: blur(1.6px) brightness(.95); }
+
+    /* cofre em grelha */
+    .cofre-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .cbox { background: linear-gradient(180deg, #1d160d, #120d07); border: 1px solid rgba(212,174,80,.38); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; box-shadow: inset 0 0 12px rgba(0,0,0,.5); }
+    .cbox > span { font-size: 10px; color: #b9a77a; text-transform: uppercase; letter-spacing: .04em; line-height: 1.25; }
+    .cbox > b { font-size: 15px; color: #ffda73; word-break: break-all; }
+    .cbox.hi { grid-column: 1 / -1; border-color: #7cd927; background: linear-gradient(180deg, #14210c, #0c1307); }
+    .cbox.hi > b { color: #7cd927; font-size: 22px; }
+    .cbox .green { color: #7cd927; } .cbox .red { color: #ff6b6b; }
+    .cofre-hist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+    .cofre-hist .cbox .history-box { font-size: 11px; color: #ddd; max-height: 120px; overflow: auto; }
+    .cofre-hist .btn-action { margin-top: 4px; padding: 8px 6px; font-size: 11px; }
+    .vault-dep { margin-top: 8px; }

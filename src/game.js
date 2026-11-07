@@ -148,6 +148,42 @@
       ? '<svg viewBox="0 0 64 64"><rect x="16" y="16" width="32" height="32" rx="5" fill="#fff"/></svg><span>PARAR</span>'
       : SPIN_FACE_PLAY;
   }
+  // ===== Areia a passar pelo cenário (canvas leve; pára quando o separador não está visível) =====
+  function startSand(canvas, opts) {
+    opts = opts || {};
+    const ctx = canvas.getContext('2d'); let w = 0, h = 0, raf = 0, last = 0, P = [], W = [];
+    function resize() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = canvas.clientWidth || 300; h = canvas.clientHeight || 300;
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const count = Math.max(45, Math.min(120, Math.round(w * h / 7500)));
+      P = []; for (let i = 0; i < count; i++) P.push({ x: Math.random() * w, y: Math.random() * h, r: .6 + Math.random() * 1.9, vx: 35 + Math.random() * 90, vy: -4 + Math.random() * 12, a: .18 + Math.random() * .5, ph: Math.random() * 6.28 });
+      W = []; for (let i = 0; i < 6; i++) W.push({ y: Math.random() * h, l: w * (.5 + Math.random() * .6), th: 26 + Math.random() * 60, v: 25 + Math.random() * 45, x: Math.random() * (w + 400) - 200, a: .09 + Math.random() * .09 });
+    }
+    function frame(t) {
+      raf = requestAnimationFrame(frame);
+      if (document.hidden) { last = t; return; }
+      const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+      ctx.clearRect(0, 0, w, h);
+      W.forEach(b => {   // faixas de poeira / vento
+        b.x += b.v * dt; if (b.x > w + 50) { b.x = -b.l; b.y = Math.random() * h; }
+        const g = ctx.createLinearGradient(b.x, 0, b.x + b.l, 0);
+        g.addColorStop(0, 'rgba(240,205,140,0)'); g.addColorStop(.5, 'rgba(240,205,140,' + b.a + ')'); g.addColorStop(1, 'rgba(240,205,140,0)');
+        ctx.fillStyle = g; ctx.fillRect(b.x, b.y, b.l, b.th);
+      });
+      ctx.fillStyle = '#f3d79a';
+      P.forEach(p => {   // grãos de areia
+        p.x += p.vx * dt; p.y += p.vy * dt + Math.sin(t / 700 + p.ph) * .18;
+        if (p.x > w + 12) { p.x = -12; p.y = Math.random() * h; }
+        if (p.y < -12) p.y = h + 12; if (p.y > h + 12) p.y = -12;
+        ctx.globalAlpha = p.a; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+        ctx.globalAlpha = p.a * .3; ctx.fillRect(p.x - p.vx * .07, p.y - p.r * .35, p.vx * .07, p.r * .7);
+      });
+      ctx.globalAlpha = 1;
+    }
+    resize(); window.addEventListener('resize', resize); raf = requestAnimationFrame(frame);
+    return function stop() { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
+  }
 
 
   const COIN_VALUES = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00, 1.50, 2.00, 2.50];
@@ -178,7 +214,8 @@
     '📖': 'assets/img/scatter.png', '👑': 'assets/img/ra.png', '🐺': 'assets/img/anubis.png', '🦅': 'assets/img/horus.png', '🪲': 'assets/img/osiris.png',
     'A': 'assets/img/A.png', '🤴': 'assets/img/K.png', 'Q': 'assets/img/Q.png', 'J': 'assets/img/J.png', '10': 'assets/img/10.png'
   };
-  const IMG_UI = ['assets/img/background.jpg', 'assets/img/title.png', 'assets/img/slot.png', 'assets/img/button_play.png', 'assets/img/box_value.png', 'assets/img/loading_title.png'];
+  const IMG_UI = ['assets/img/background.jpg', 'assets/img/title.png', 'assets/img/slot.png', 'assets/img/button_play.png', 'assets/img/box_value.png', 'assets/img/loading_title.png',
+    'assets/img/eye-of-horus.svg', 'assets/img/scarab.svg', 'assets/img/ankh.svg', 'assets/img/djed-pillar.svg', 'assets/img/feather-maat.svg'];
   function symHTML(sym) { return '<img class="si" src="' + IMG[sym] + '" alt="" draggable="false">'; }
   function initSymbolSlots() {
     document.getElementById('expSymbolIcon').innerHTML = symHTML('📖');
@@ -254,6 +291,10 @@
   ];
   function getVol() { const el = document.getElementById('inputVolatility'); const i = el ? Number(el.value) - 1 : 2; return VOL_LEVELS[Math.max(0, Math.min(4, i))]; }
   let pendingFreeSpins = 8;
+  let vaultTopUps = 0;      // dinheiro depositado no cofre de prémios pelo técnico
+  let spinCutEvents = 0;    // (diagnóstico) quantas vezes um prémio teve de ser cortado — deve ficar sempre a 0
+  const SPIN_MS = (typeof window.__spinMs === 'number') ? window.__spinMs : 2000;         // tempo de processamento de cada giro
+  const SPIN_MS_TURBO = (typeof window.__spinMs === 'number') ? window.__spinMs : 800;
 
   function generateReelSymbols(rtp, fixedBookRow) {
     const reelSyms = [];
@@ -328,13 +369,20 @@
     if (w <= cap + 1e-9) return maybeConsolation(grid, w, rtp, cap, bet);
     const books = grid.map(s => s.indexOf('📖'));
     let best = grid, bw = w;
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 200; i++) {
       grid = books.map(b => generateReelSymbols(rtp, b));
       w = evalGrid(grid);
       if (w <= cap + 1e-9) return grid;
       if (w < bw) { best = grid; bw = w; }
     }
-    return best;
+    return bw <= cap + 1e-9 ? best : noWinGrid();   // nunca mostra um prémio que o cofre não paga por inteiro
+  }
+  // Grelha garantidamente sem prémio: tambores vizinhos nunca partilham símbolos (e sem Pirâmides / sem símbolo expansivo)
+  function noWinGrid() {
+    const pool = SYMBOLS.filter(s => s !== '📖' && !(inFreeSpins && s === expandingSymbol)).sort(() => Math.random() - 0.5);
+    const A = pool.slice(0, 3), B = pool.slice(3, 6);
+    const shuf = a => a.slice().sort(() => Math.random() - 0.5);
+    return [0, 1, 2, 3, 4].map(r => shuf(r % 2 === 0 ? A : B));
   }
 
   // ===== Prémios pequenos de consolação (sem desanimar o jogador, sempre dentro do teto do cofre) =====
@@ -359,7 +407,7 @@
 
   // ===== Reserva da slot: % de cada aposta retida, que nunca paga prémios =====
   function getReservePct() { const el = document.getElementById('inputReserve'); return el ? Number(el.value) / 100 : 0; }
-  function getVault() { return totalBetStat * (1 - getReservePct()) - totalPayoutsStat; }
+  function getVault() { return totalBetStat * (1 - getReservePct()) - totalPayoutsStat + vaultTopUps; }
 
   // ===== Teases: quase-bónus (exatamente 2 Pirâmides) que nunca ativam o bónus =====
   function teaseChance() { const el = document.getElementById('inputTease'); return el ? Number(el.value) / 100 : 0; }
@@ -405,7 +453,7 @@
     const reels = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, n);
     const rows = [0, 1, 2, 3, 4].map(r => reels.includes(r) ? Math.floor(Math.random() * 3) : -1);
     let best = null, bw = Infinity;
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 400; i++) {
       const g = rows.map(b => generateReelSymbols(rtp, b));
       const w = evalGrid(g);
       if (w <= cap + 1e-9) return g;
@@ -511,6 +559,7 @@
     document.getElementById('admReservePct').innerText = _rp;
     document.getElementById('admReserve').innerText = (totalBetStat * _rp / 100).toFixed(2) + ' €';
     document.getElementById('admPrizeVault').innerText = Math.max(0, getVault()).toFixed(2) + ' €';
+    document.getElementById('admVaultTopUps').innerText = vaultTopUps.toFixed(2) + ' €';
     
     let collabShareAmt = Math.max(0, currentVault * (collabPercentage / 100));
     let techShareAmt = Math.max(0, currentVault - collabShareAmt);
@@ -578,34 +627,35 @@
 
     let spinsDone = 0, totalScatters = 0;
     const rtp = parseInt(document.getElementById('inputRtp').value);
-    const delayStep = isTurbo ? 60 : 130;
+    // 1) A máquina calcula TUDO antes de mostrar: RTP, volatilidade, teases e o cofre de prémios (a grelha final já respeita o cofre)
     const plannedGrid = planSpinGrid(rtp);
-
-    const startAt = []; let tAcc = 0, booksSeen = 0;
+    // 2) Os tambores começam a rolar logo (de cima para baixo) e o último pára aos 2 s (Turbo: mais rápido)
+    const T = isTurbo ? SPIN_MS_TURBO : SPIN_MS;
+    const stagger = isTurbo ? 60 : 150;
+    const FIN = isTurbo ? 150 : 250;   // pausa entre o último tambor parar e a jogada ser avaliada
+    const stopAt = []; let tAcc = 0, booksSeen = 0;
     for (let r = 0; r < 5; r++) {
       if (r > 0 && booksSeen >= 2) tAcc += isTurbo ? 260 : 700;   // com 2 Pirâmides à vista, os tambores seguintes demoram mais
-      startAt[r] = r * delayStep + tAcc;
+      stopAt[r] = Math.max(0, T - FIN - (4 - r) * stagger) + tAcc;
       if (plannedGrid[r].includes('📖')) booksSeen++;
     }
-    for(let r=0; r<5; r++) {
-      const waitExtra = r > 0 ? (startAt[r] - startAt[r-1] - delayStep) : 0;
-      if (waitExtra > 0) {
-        setTimeout(() => { document.getElementById(`reel-${r}`).classList.add('anticipate'); document.getElementById(`strip-${r}`).innerHTML = ''; tone(392 + r * 60, .55, 'sine', .05); }, startAt[r] - waitExtra);
+    for (let r = 0; r < 5; r++) startRoll(r, stopAt[r], plannedGrid[r]);
+    for (let r = 0; r < 5; r++) {
+      if (r > 0 && stopAt[r] - stopAt[r - 1] > stagger + 50) {
+        setTimeout(() => { document.getElementById(`reel-${r}`).classList.add('anticipate'); tone(392 + r * 60, .55, 'sine', .05); }, stopAt[r - 1]);
       }
       setTimeout(() => {
         const reelEl = document.getElementById(`reel-${r}`);
-        reelEl.classList.remove('anticipate');
         const stripEl = document.getElementById(`strip-${r}`);
-        reelEl.classList.add('cascading');
+        reelEl.classList.remove('anticipate', 'rolling');
+        stripEl.style.transition = 'none'; stripEl.style.transform = ''; stripEl.style.height = '';
         stripEl.innerHTML = '';
-
         const reelSyms = plannedGrid[r];
         gridState[r] = reelSyms;
-
         reelSyms.forEach(sym => {
           const div = document.createElement('div');
           div.className = 'symbol';
-          if(sym === '📖') {
+          if (sym === '📖') {
             totalScatters++;
             bonusBookCount++;
             div.classList.add('book-glow');
@@ -614,16 +664,41 @@
           div.innerHTML = symHTML(sym); div.dataset.sym = sym;
           stripEl.appendChild(div);
         });
-
-        setTimeout(() => reelEl.classList.remove('cascading'), isTurbo ? 180 : 350);
         playReelStop(r);
         spinsDone++;
-        if(spinsDone === 5) {
-          setTimeout(() => finishSpin(totalScatters), isTurbo ? 150 : 250);
+        if (spinsDone === 5) {
+          setTimeout(() => finishSpin(totalScatters), FIN);
         }
-      }, startAt[r]);
+      }, stopAt[r]);
     }
   }
+
+  // Rolagem de cima para baixo: [símbolos finais] + enchimento + [símbolos que já estavam], a tira desce até mostrar os finais
+  function startRoll(r, dur, finalSyms) {
+    if (dur < 120) return;
+    const reelEl = document.getElementById(`reel-${r}`), strip = document.getElementById(`strip-${r}`);
+    const old = [...strip.querySelectorAll('.symbol')].map(s => s.innerHTML);
+    const keys = Object.keys(IMG);
+    const n = 3 + Math.max(8, Math.round(dur / 70));
+    strip.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const div = document.createElement('div');
+      div.className = 'symbol';
+      div.style.flex = '0 0 ' + (100 / n) + '%'; div.style.height = (100 / n) + '%';
+      if (i < 3) div.innerHTML = symHTML(finalSyms[i]);
+      else if (i >= n - 3) div.innerHTML = old[i - (n - 3)] || symHTML(keys[Math.floor(Math.random() * keys.length)]);
+      else div.innerHTML = symHTML(keys[Math.floor(Math.random() * keys.length)]);
+      strip.appendChild(div);
+    }
+    strip.style.transition = 'none'; strip.style.height = (n * 100 / 3) + '%';
+    strip.style.transform = 'translateY(-' + ((n - 3) / n * 100) + '%)';
+    void strip.offsetHeight;
+    reelEl.classList.add('rolling');
+    strip.style.transition = 'transform ' + dur + 'ms cubic-bezier(.2,.72,.28,1.04)';
+    strip.style.transform = 'translateY(0)';
+    setTimeout(() => reelEl.classList.remove('rolling'), Math.max(0, dur - 380));
+  }
+
 
   function checkAndExpandSymbols() {
     if(!inFreeSpins || !expandingSymbol) return 0;
@@ -700,10 +775,12 @@
     let currentVault = getVault();
     const alreadyReserved = inFreeSpins ? bonusTotalWinAccumulated : 0;
     const availableVault = Math.max(0, currentVault - alreadyReserved);
+    const _rawWin = totalSpinWin;
     if (totalSpinWin > availableVault) {
       totalSpinWin = availableVault;
     }
     totalSpinWin = Math.min(totalSpinWin, maxAllowedWin(availableVault, getTotalBetCash()));
+    if (totalSpinWin < _rawWin - 1e-9) spinCutEvents++;
 
     if(scatters >= 3) {
       if (!inFreeSpins) {
@@ -907,6 +984,7 @@
     if(isNaN(val) || val <= 0) { alert("Valor inválido!"); return; }
     totalDepStat += val;
     depositsHistory.push(val);
+    depositsLog.push({ t: new Date(), v: val });
     balance += val;
     updateUI();
     closeModal('deposit-modal');
@@ -936,6 +1014,7 @@
       let amount = balance;
       totalWithStat += amount;
       withdrawalsHistory.push(amount);
+      withdrawalsLog.push({ t: new Date(), v: amount });
       balance = 0;
       updateUI();
       closeModal('withdraw-modal');
@@ -1026,6 +1105,7 @@
     document.getElementById('cfgUnlockRow').style.display = locked ? 'block' : 'none';
     document.getElementById('lockCfgBtn').style.display = locked ? 'none' : 'block';
     document.getElementById('resetCounterBtn').style.display = locked ? 'none' : 'block';
+    document.getElementById('cfgVaultDep').style.display = locked ? 'none' : 'block';
   }
   function unlockCfg() {
     const p = document.getElementById('cfgTechPass');
@@ -1038,8 +1118,8 @@
     if (!silent) alert('Configurações bloqueadas!');
   }
   function resetCounter() {
-    if (!confirm('Zerar o contador (Total Apostado e Total de Prémios Pagos)?')) return;
-    totalBetStat = 0; totalPayoutsStat = 0; dryStreak = 0;
+    if (!confirm('Zerar o contador (Total Apostado, Total de Prémios Pagos e depósitos no cofre)?')) return;
+    totalBetStat = 0; totalPayoutsStat = 0; vaultTopUps = 0; vaultTopUpLog.length = 0; dryStreak = 0;
     updateUI();
     alert('Contador zerado.');
   }
@@ -1056,6 +1136,32 @@
       `<br>• Teases: ${t}% das jogadas; ${tb}% viram bónus se o cofre permitir → bónus extra ${extra > 0 ? '≈ 1 em ' + Math.round(1 / extra) + ' jogadas (agora)' : 'inativo (cofre abaixo de ' + VAULT_MIN_FOR_BOOKS + ' €)'}.` +
       `<br>• Compra de bónus: 3 Pirâmides garantidas; 4 com ${(25 * bf).toFixed(0)}% e 5 com ${(10 * bf).toFixed(0)}% (sobe com o cofre até 500 €); 8 / 10 / 12 Free Spins.`;
   }
+
+  // ===== Cofre de prémios: depósitos do técnico e históricos exportáveis =====
+  const depositsLog = [], withdrawalsLog = [], vaultTopUpLog = [];
+  function depositVault() {
+    const el = document.getElementById('vaultDepInput'); const v = parseFloat(el.value);
+    if (isNaN(v) || v <= 0) { alert('Valor inválido!'); return; }
+    vaultTopUps += v; vaultTopUpLog.push({ t: new Date(), v: v }); el.value = '';
+    updateUI(); alert('Depositado no cofre de prémios: ' + v.toFixed(2) + ' €');
+  }
+  function fmtDT(d) { const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()); }
+  function downloadText(name, text) {
+    const blob = new Blob(['\ufeff' + text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 1500);
+  }
+  function historyText(title, log, empty) {
+    const total = log.reduce(function (s, x) { return s + x.v; }, 0);
+    let t = 'KINGS OF EGYPT ' + GAME_VERSION + '\n' + title + '\nGerado em: ' + fmtDT(new Date()) + '\n' + '-'.repeat(44) + '\n';
+    if (!log.length) t += empty + '\n';
+    else log.forEach(function (x, i) { t += String(i + 1).padStart(4, '0') + '   ' + fmtDT(x.t) + '   ' + x.v.toFixed(2).padStart(10) + ' €\n'; });
+    return t + '-'.repeat(44) + '\nTotal de registos: ' + log.length + '\nValor total: ' + total.toFixed(2) + ' €\n';
+  }
+  function stamp() { return fmtDT(new Date()).slice(0, 10); }
+  function exportDepositHistory() { downloadText('historico_depositos_' + stamp() + '.txt', historyText('HISTÓRICO DE DEPÓSITOS', depositsLog, 'Nenhum depósito efetuado.')); }
+  function exportWithdrawalHistory() { downloadText('historico_levantamentos_' + stamp() + '.txt', historyText('HISTÓRICO DE LEVANTAMENTOS', withdrawalsLog, 'Nenhum levantamento efetuado.')); }
 
 
   function updateCollabCommission(val) {
@@ -1135,6 +1241,11 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
+  const GAME_VERSION = 'v1.47';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  document.getElementById('gameVersion').textContent = GAME_VERSION;
+  startSand(document.getElementById('sandGame'));
+  const stopLoadSand = startSand(document.getElementById('sandLoad'));
+
   // Auto-Spin: o botão mostra as voltas que restam
   const AUTO_FACE = document.getElementById('autoBtn').innerHTML;
   function syncAutoBtn() {
@@ -1170,6 +1281,6 @@
     setTimeout(ready, 8000);
     btn.addEventListener('click', function () {
       musicWanted = true; syncMusic(); getAudioContext(); unlockAudio();
-      ld.style.opacity = '0'; setTimeout(function () { ld.remove(); }, 650);
+      ld.style.opacity = '0'; setTimeout(function () { stopLoadSand(); ld.remove(); }, 650);
     });
   })();
