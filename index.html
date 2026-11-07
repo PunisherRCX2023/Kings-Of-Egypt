@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Kings of Egypt</title>
   <style>
+
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
       background-color: #08080a;
@@ -400,9 +401,7 @@
 
     /* linha de ícones decorativos */
     .deco { z-index: 3; border-radius: calc(var(--u) * 10); border: calc(var(--u) * 4) solid #d9a940; box-shadow: inset 0 0 calc(var(--u) * 18) rgba(0,0,0,.65), 0 calc(var(--u) * 4) calc(var(--u) * 10) rgba(0,0,0,.8); display: flex; align-items: center; justify-content: center; }
-    /* Os símbolos decorativos são carregados exclusivamente dos ficheiros em assets/img. */
-    .deco > svg, .deco > canvas { display: none !important; }
-    .deco > img { width: 74%; height: 74%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
+    .deco svg { width: 74%; height: 74%; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
     .d1 { background: radial-gradient(circle at 50% 40%, #2f63b8, #0b1d47); } .d2 { background: radial-gradient(circle at 50% 40%, #c8601f, #5a1d08); }
     .d3 { background: radial-gradient(circle at 50% 40%, #2a64b0, #0a1f4a); } .d4 { background: radial-gradient(circle at 50% 40%, #2c9a62, #0c3d27); }
     .d5 { background: radial-gradient(circle at 50% 40%, #1fa0a8, #0a3a44); }
@@ -530,7 +529,7 @@
     /* ===== v1.47 ===== */
     .ver { left: calc(var(--u) * 14); top: calc(var(--u) * 104); z-index: 6; padding: calc(var(--u) * 2) calc(var(--u) * 14); font-size: calc(var(--u) * 24); color: #f4ead0; background: rgba(8,8,10,.72); border-radius: calc(var(--u) * 8); }
     .title-img, .deco, .expanding-banner, .clock, .ver { transform: translateY(calc(max(0px, calc(var(--app-h) - var(--u) * 1376)) * -.5)); }
-    /* Mantém as imagens dos cinco símbolos com proporção e nitidez. */
+    .deco img { width: 74%; height: 74%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
     .sand { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
     #loading > *:not(.sand) { position: relative; z-index: 1; }
     .reel-strip { will-change: transform; transition: filter .25s; }
@@ -548,7 +547,7 @@
     .cofre-hist .cbox .history-box { font-size: 11px; color: #ddd; max-height: 120px; overflow: auto; }
     .cofre-hist .btn-action { margin-top: 4px; padding: 8px 6px; font-size: 11px; }
     .vault-dep { margin-top: 8px; }
-</style>
+  </style>
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>
@@ -581,7 +580,7 @@
   <div class="clock" id="clock">10:30</div>
   <div class="ver" id="gameVersion">v1.47</div>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
-  <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/scatter.png" alt="" draggable="false"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/anubis.png" alt="" draggable="false"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/horus.png" alt="" draggable="false"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/osiris.png" alt="" draggable="false"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/ra.png" alt="" draggable="false"></div>
+  <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/eye-of-horus.PNG" alt="" draggable="false"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/djed-pillar.PNG" alt="" draggable="false"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/Ankh.PNG" alt="" draggable="false"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/scarab.PNG" alt="" draggable="false"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/symbols/feather-maat.PNG" alt="" draggable="false"></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
   <img class="slot-img" src="assets/img/slot.png" alt="" style="left:calc(var(--u)*0.00);top:calc(var(--u)*322.00);width:calc(var(--u)*768.00);height:calc(var(--u)*537.00);">
   <div class="reels-container" id="reelsContainer" style="left:calc(var(--u)*51.00);top:calc(var(--u)*345.00);width:calc(var(--u)*664.00);height:calc(var(--u)*385.00);"><div class="reel" id="reel-0"><div class="reel-strip" id="strip-0"></div></div><div class="reel" id="reel-1"><div class="reel-strip" id="strip-1"></div></div><div class="reel" id="reel-2"><div class="reel-strip" id="strip-2"></div></div><div class="reel" id="reel-3"><div class="reel-strip" id="strip-3"></div></div><div class="reel" id="reel-4"><div class="reel-strip" id="strip-4"></div></div></div>
