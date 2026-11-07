@@ -215,7 +215,7 @@
     'A': 'assets/img/A.png', '🤴': 'assets/img/K.png', 'Q': 'assets/img/Q.png', 'J': 'assets/img/J.png', '10': 'assets/img/10.png'
   };
   const IMG_UI = ['assets/img/background.jpg', 'assets/img/title.png', 'assets/img/slot.png', 'assets/img/button_play.png', 'assets/img/box_value.png', 'assets/img/loading_title.png',
-    'assets/img/eye-of-horus.svg', 'assets/img/scarab.svg', 'assets/img/ankh.svg', 'assets/img/djed-pillar.svg', 'assets/img/feather-maat.svg'];
+    'assets/img/scatter.png', 'assets/img/anubis.png', 'assets/img/horus.png', 'assets/img/osiris.png', 'assets/img/ra.png'];
   function symHTML(sym) { return '<img class="si" src="' + IMG[sym] + '" alt="" draggable="false">'; }
   function initSymbolSlots() {
     document.getElementById('expSymbolIcon').innerHTML = symHTML('📖');
