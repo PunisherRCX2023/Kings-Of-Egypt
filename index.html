@@ -524,6 +524,28 @@
     .btn-autospin-trigger.counting { box-shadow: inset 0 calc(var(--u) * -6) calc(var(--u) * 10) rgba(120,70,0,.5), 0 0 calc(var(--u) * 22) rgba(255,230,120,.8); }
     .vol-scale { display: flex; justify-content: space-between; font-size: 9px; color: #8f9b94; margin-top: 2px; }
     .vol-scale span { flex: 1; text-align: center; }
+
+    /* ===== v1.47 ===== */
+    .ver { left: calc(var(--u) * 14); top: calc(var(--u) * 104); z-index: 6; padding: calc(var(--u) * 2) calc(var(--u) * 14); font-size: calc(var(--u) * 24); color: #f4ead0; background: rgba(8,8,10,.72); border-radius: calc(var(--u) * 8); }
+    .title-img, .deco, .expanding-banner, .clock, .ver { transform: translateY(calc(max(0px, calc(var(--app-h) - var(--u) * 1376)) * -.5)); }
+    .deco img { width: 74%; height: 74%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.7)); }
+    .sand { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    #loading > *:not(.sand) { position: relative; z-index: 1; }
+    .reel-strip { will-change: transform; transition: filter .25s; }
+    .reel.rolling .reel-strip { filter: blur(1.6px) brightness(.95); }
+
+    /* cofre em grelha */
+    .cofre-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .cbox { background: linear-gradient(180deg, #1d160d, #120d07); border: 1px solid rgba(212,174,80,.38); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; box-shadow: inset 0 0 12px rgba(0,0,0,.5); }
+    .cbox > span { font-size: 10px; color: #b9a77a; text-transform: uppercase; letter-spacing: .04em; line-height: 1.25; }
+    .cbox > b { font-size: 15px; color: #ffda73; word-break: break-all; }
+    .cbox.hi { grid-column: 1 / -1; border-color: #7cd927; background: linear-gradient(180deg, #14210c, #0c1307); }
+    .cbox.hi > b { color: #7cd927; font-size: 22px; }
+    .cbox .green { color: #7cd927; } .cbox .red { color: #ff6b6b; }
+    .cofre-hist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+    .cofre-hist .cbox .history-box { font-size: 11px; color: #ddd; max-height: 120px; overflow: auto; }
+    .cofre-hist .btn-action { margin-top: 4px; padding: 8px 6px; font-size: 11px; }
+    .vault-dep { margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -544,8 +566,9 @@
 </defs></svg>
 
 <div id="bgfill" aria-hidden="true"></div>
-<div id="loading"><img src="assets/img/loading_title.png" alt="Kings of Egypt"><div id="ldTxt"><div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div><div class="ld-note">A carregar…</div></div><button type="button" id="ldBtn">TOCAR PARA JOGAR</button></div>
+<div id="loading"><canvas class="sand" id="sandLoad"></canvas><img src="assets/img/loading_title.png" alt="Kings of Egypt"><div id="ldTxt"><div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div><div class="ld-note">A carregar…</div></div><button type="button" id="ldBtn">TOCAR PARA JOGAR</button></div>
 <div id="game-container">
+  <canvas class="sand" id="sandGame"></canvas>
   <div class="topbar">
     <button class="sound-trigger" id="soundToggle" type="button" onclick="toggleSound()" aria-label="Desligar som"></button>
     <button type="button" class="tb-btn tb-dark" style="left:calc(var(--u)*186.00);top:calc(var(--u)*12.00);width:calc(var(--u)*200.00);height:calc(var(--u)*72.00);" onclick="openWithdrawModal()">Levantar</button>
@@ -554,8 +577,9 @@
   </div>
   <div class="grp">
   <div class="clock" id="clock">10:30</div>
+  <div class="ver" id="gameVersion">v1.47</div>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
-  <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M6 34Q32 10 58 34Q32 56 6 34Z" fill="none" stroke="url(#gGold)" stroke-width="4"/><circle cx="32" cy="34" r="9" fill="url(#gGold)"/><circle cx="32" cy="34" r="4" fill="#111"/><path d="M20 46q-2 10-12 12M34 45v14q0 4 8 4" fill="none" stroke="url(#gGold)" stroke-width="3.5" stroke-linecap="round"/></svg></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M17 36C8 32 5 24 6 17c8 1 14 5 17 12M47 36c9-4 12-12 11-19-8 1-14 5-17 12" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="1.5"/><ellipse cx="32" cy="40" rx="15" ry="18" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="2"/><path d="M32 22v36" stroke="#5a3a0a" stroke-width="2"/><circle cx="32" cy="15" r="7" fill="url(#gSun)" stroke="#5a3a0a" stroke-width="1.5"/></svg></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="20" r="12" fill="none" stroke="url(#gGold)" stroke-width="7"/><path d="M32 32v28M16 44h32" stroke="url(#gGold)" stroke-width="7" stroke-linecap="round"/></svg></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="22" rx="17" ry="13" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="1.6"/><circle cx="32" cy="11" r="7" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="1.4"/><circle cx="29.5" cy="10" r="1.6" fill="#111"/><circle cx="34.5" cy="10" r="1.6" fill="#111"/><path d="M32 32C32 44 16 44 18 53C20 60 44 60 46 52" fill="none" stroke="url(#gGold)" stroke-width="8" stroke-linecap="round"/><path d="M32 32C32 44 16 44 18 53C20 60 44 60 46 52" fill="none" stroke="#5a3a0a" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M50 6C24 10 10 30 12 52c14-4 34-14 38-46Z" fill="url(#gGold)" stroke="#5a3a0a" stroke-width="1.5"/><path d="M12 58 46 14" stroke="#5a3a0a" stroke-width="2.4"/></svg></div>
+  <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/eye-of-horus.svg" alt="" draggable="false"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/scarab.svg" alt="" draggable="false"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/ankh.svg" alt="" draggable="false"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/djed-pillar.svg" alt="" draggable="false"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/feather-maat.svg" alt="" draggable="false"></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
   <img class="slot-img" src="assets/img/slot.png" alt="" style="left:calc(var(--u)*0.00);top:calc(var(--u)*322.00);width:calc(var(--u)*768.00);height:calc(var(--u)*537.00);">
   <div class="reels-container" id="reelsContainer" style="left:calc(var(--u)*51.00);top:calc(var(--u)*345.00);width:calc(var(--u)*664.00);height:calc(var(--u)*385.00);"><div class="reel" id="reel-0"><div class="reel-strip" id="strip-0"></div></div><div class="reel" id="reel-1"><div class="reel-strip" id="strip-1"></div></div><div class="reel" id="reel-2"><div class="reel-strip" id="strip-2"></div></div><div class="reel" id="reel-3"><div class="reel-strip" id="strip-3"></div></div><div class="reel" id="reel-4"><div class="reel-strip" id="strip-4"></div></div></div>
@@ -756,24 +780,24 @@
         </div>
 
         <div class="admin-section active" id="adm-cofre">
-          <div style="background:#151515; padding:10px; border-radius:4px; font-size:12px; display:flex; flex-direction:column; gap:6px;">
-            <div>Total Apostado: <b style="color:#ffda73;" id="admTotalBet">0.00 €</b></div>
-            <div>Total Prémios Pagos: <b style="color:#ff5555;" id="admTotalPayouts">0.00 €</b></div>
-            <div>Cofre / Lucro Líquido Real: <b style="color:#ffda73;" id="admVault">0.00 €</b></div>
-            <div>Reserva da Slot (<span id="admReservePct">0</span>%): <b style="color:#ffda73;" id="admReserve">0.00 €</b></div>
-            <div>Cofre disponível para prémios: <b style="color:#7cd927;" id="admPrizeVault">0.00 €</b></div>
-            <hr style="border-color:#333; margin:4px 0;">
-            <div>Parte Colaborador (<span id="collabPctDisplay">20</span>%): <b style="color:#7cd927;" id="collabShare">0.00 €</b></div>
-            <div>Parte Técnico do Jogo (<span id="techPctDisplay">80</span>%): <b style="color:#7cd927;" id="techShare">0.00 €</b></div>
-            <hr style="border-color:#333; margin:4px 0;">
-            <div>Total Depósitos: <b style="color:#7cd927;" id="admTotalDep">0.00 €</b></div>
-            <div>Total Levantamentos: <b style="color:#ff5555;" id="admTotalWith">0.00 €</b></div>
-            <div style="margin-top:4px; font-weight:bold; color:#ffda73;">Últimos 5 Depósitos:</div>
-            <div class="history-box" id="depHistoryBox"><div>Nenhum depósito efetuado</div></div>
-            <div style="margin-top:4px; font-weight:bold; color:#ffda73;">Últimos 5 Levantamentos:</div>
-            <div class="history-box" id="withHistoryBox"><div>Nenhum levantamento efetuado</div></div>
+          <div class="cofre-grid">
+            <div class="cbox"><span>Total Apostado</span><b id="admTotalBet">0.00 €</b></div>
+            <div class="cbox"><span>Total Prémios Pagos</span><b class="red" id="admTotalPayouts">0.00 €</b></div>
+            <div class="cbox"><span>Cofre / Lucro Líquido Real</span><b id="admVault">0.00 €</b></div>
+            <div class="cbox"><span>Reserva da Slot (<i id="admReservePct" style="font-style:normal;">0</i>%)</span><b id="admReserve">0.00 €</b></div>
+            <div class="cbox"><span>Depósitos no Cofre</span><b id="admVaultTopUps">0.00 €</b></div>
+            <div class="cbox"><span>Total Depósitos</span><b class="green" id="admTotalDep">0.00 €</b></div>
+            <div class="cbox hi"><span>Cofre de Prémios (disponível para prémios)</span><b id="admPrizeVault">0.00 €</b></div>
+            <div class="cbox"><span>Parte Colaborador (<i id="collabPctDisplay" style="font-style:normal;">20</i>%)</span><b class="green" id="collabShare">0.00 €</b></div>
+            <div class="cbox"><span>Parte Técnico (<i id="techPctDisplay" style="font-style:normal;">80</i>%)</span><b class="green" id="techShare">0.00 €</b></div>
+            <div class="cbox"><span>Total Levantamentos</span><b class="red" id="admTotalWith">0.00 €</b></div>
           </div>
-          <button class="btn-exit-admin" onclick="exitAdminPanel()">Sair do Painel de Admin</button>
+          <div class="cofre-hist">
+            <div class="cbox"><span>Últimos 5 Depósitos</span><div class="history-box" id="depHistoryBox"><div>Nenhum depósito efetuado</div></div><button class="btn-action" onclick="exportDepositHistory()">Histórico de Depósitos</button></div>
+            <div class="cbox"><span>Últimos 5 Levantamentos</span><div class="history-box" id="withHistoryBox"><div>Nenhum levantamento efetuado</div></div><button class="btn-action" onclick="exportWithdrawalHistory()">Histórico de Levantamentos</button></div>
+          </div>
+          
+<button class="btn-exit-admin" onclick="exitAdminPanel()">Sair do Painel de Admin</button>
         </div>
 
         <div class="admin-section" id="adm-config-slot">
@@ -788,6 +812,14 @@
             </div>
             <button class="btn-action" id="lockCfgBtn" style="display:none; background:linear-gradient(180deg, #d32f2f 0%, #8a1c1c 100%); color:#fff;" onclick="lockCfg()">Bloquear Novamente</button>
             <button class="btn-action" id="resetCounterBtn" style="display:none; margin-top:8px;" onclick="resetCounter()">Zerar Contador</button>
+            <div class="form-group vault-dep" id="cfgVaultDep" style="display:none;">
+              <label>Depositar no Cofre de Prémios (€):</label>
+              <div style="display:flex; gap:6px;">
+                <input type="number" id="vaultDepInput" class="form-control" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+                <button class="btn-action" style="margin-top:0; padding:6px 12px; white-space:nowrap;" onclick="depositVault()">Depositar Cofre</button>
+              </div>
+            </div>
+
           </div>
           <div class="slider-container">
             <label style="font-size:11px; color:#aaa;">RTP alvo (ajuste de distribuição, longo prazo) (%):</label>
@@ -1028,6 +1060,42 @@
       ? '<svg viewBox="0 0 64 64"><rect x="16" y="16" width="32" height="32" rx="5" fill="#fff"/></svg><span>PARAR</span>'
       : SPIN_FACE_PLAY;
   }
+  // ===== Areia a passar pelo cenário (canvas leve; pára quando o separador não está visível) =====
+  function startSand(canvas, opts) {
+    opts = opts || {};
+    const ctx = canvas.getContext('2d'); let w = 0, h = 0, raf = 0, last = 0, P = [], W = [];
+    function resize() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = canvas.clientWidth || 300; h = canvas.clientHeight || 300;
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const count = Math.max(45, Math.min(120, Math.round(w * h / 7500)));
+      P = []; for (let i = 0; i < count; i++) P.push({ x: Math.random() * w, y: Math.random() * h, r: .6 + Math.random() * 1.9, vx: 35 + Math.random() * 90, vy: -4 + Math.random() * 12, a: .18 + Math.random() * .5, ph: Math.random() * 6.28 });
+      W = []; for (let i = 0; i < 6; i++) W.push({ y: Math.random() * h, l: w * (.5 + Math.random() * .6), th: 26 + Math.random() * 60, v: 25 + Math.random() * 45, x: Math.random() * (w + 400) - 200, a: .09 + Math.random() * .09 });
+    }
+    function frame(t) {
+      raf = requestAnimationFrame(frame);
+      if (document.hidden) { last = t; return; }
+      const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+      ctx.clearRect(0, 0, w, h);
+      W.forEach(b => {   // faixas de poeira / vento
+        b.x += b.v * dt; if (b.x > w + 50) { b.x = -b.l; b.y = Math.random() * h; }
+        const g = ctx.createLinearGradient(b.x, 0, b.x + b.l, 0);
+        g.addColorStop(0, 'rgba(240,205,140,0)'); g.addColorStop(.5, 'rgba(240,205,140,' + b.a + ')'); g.addColorStop(1, 'rgba(240,205,140,0)');
+        ctx.fillStyle = g; ctx.fillRect(b.x, b.y, b.l, b.th);
+      });
+      ctx.fillStyle = '#f3d79a';
+      P.forEach(p => {   // grãos de areia
+        p.x += p.vx * dt; p.y += p.vy * dt + Math.sin(t / 700 + p.ph) * .18;
+        if (p.x > w + 12) { p.x = -12; p.y = Math.random() * h; }
+        if (p.y < -12) p.y = h + 12; if (p.y > h + 12) p.y = -12;
+        ctx.globalAlpha = p.a; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+        ctx.globalAlpha = p.a * .3; ctx.fillRect(p.x - p.vx * .07, p.y - p.r * .35, p.vx * .07, p.r * .7);
+      });
+      ctx.globalAlpha = 1;
+    }
+    resize(); window.addEventListener('resize', resize); raf = requestAnimationFrame(frame);
+    return function stop() { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
+  }
 
 
   const COIN_VALUES = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00, 1.50, 2.00, 2.50];
@@ -1058,7 +1126,8 @@
     '📖': 'assets/img/scatter.png', '👑': 'assets/img/ra.png', '🐺': 'assets/img/anubis.png', '🦅': 'assets/img/horus.png', '🪲': 'assets/img/osiris.png',
     'A': 'assets/img/A.png', '🤴': 'assets/img/K.png', 'Q': 'assets/img/Q.png', 'J': 'assets/img/J.png', '10': 'assets/img/10.png'
   };
-  const IMG_UI = ['assets/img/background.jpg', 'assets/img/title.png', 'assets/img/slot.png', 'assets/img/button_play.png', 'assets/img/box_value.png', 'assets/img/loading_title.png'];
+  const IMG_UI = ['assets/img/background.jpg', 'assets/img/title.png', 'assets/img/slot.png', 'assets/img/button_play.png', 'assets/img/box_value.png', 'assets/img/loading_title.png',
+    'assets/img/eye-of-horus.svg', 'assets/img/scarab.svg', 'assets/img/ankh.svg', 'assets/img/djed-pillar.svg', 'assets/img/feather-maat.svg'];
   function symHTML(sym) { return '<img class="si" src="' + IMG[sym] + '" alt="" draggable="false">'; }
   function initSymbolSlots() {
     document.getElementById('expSymbolIcon').innerHTML = symHTML('📖');
@@ -1134,6 +1203,10 @@
   ];
   function getVol() { const el = document.getElementById('inputVolatility'); const i = el ? Number(el.value) - 1 : 2; return VOL_LEVELS[Math.max(0, Math.min(4, i))]; }
   let pendingFreeSpins = 8;
+  let vaultTopUps = 0;      // dinheiro depositado no cofre de prémios pelo técnico
+  let spinCutEvents = 0;    // (diagnóstico) quantas vezes um prémio teve de ser cortado — deve ficar sempre a 0
+  const SPIN_MS = (typeof window.__spinMs === 'number') ? window.__spinMs : 2000;         // tempo de processamento de cada giro
+  const SPIN_MS_TURBO = (typeof window.__spinMs === 'number') ? window.__spinMs : 800;
 
   function generateReelSymbols(rtp, fixedBookRow) {
     const reelSyms = [];
@@ -1208,13 +1281,20 @@
     if (w <= cap + 1e-9) return maybeConsolation(grid, w, rtp, cap, bet);
     const books = grid.map(s => s.indexOf('📖'));
     let best = grid, bw = w;
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 200; i++) {
       grid = books.map(b => generateReelSymbols(rtp, b));
       w = evalGrid(grid);
       if (w <= cap + 1e-9) return grid;
       if (w < bw) { best = grid; bw = w; }
     }
-    return best;
+    return bw <= cap + 1e-9 ? best : noWinGrid();   // nunca mostra um prémio que o cofre não paga por inteiro
+  }
+  // Grelha garantidamente sem prémio: tambores vizinhos nunca partilham símbolos (e sem Pirâmides / sem símbolo expansivo)
+  function noWinGrid() {
+    const pool = SYMBOLS.filter(s => s !== '📖' && !(inFreeSpins && s === expandingSymbol)).sort(() => Math.random() - 0.5);
+    const A = pool.slice(0, 3), B = pool.slice(3, 6);
+    const shuf = a => a.slice().sort(() => Math.random() - 0.5);
+    return [0, 1, 2, 3, 4].map(r => shuf(r % 2 === 0 ? A : B));
   }
 
   // ===== Prémios pequenos de consolação (sem desanimar o jogador, sempre dentro do teto do cofre) =====
@@ -1239,7 +1319,7 @@
 
   // ===== Reserva da slot: % de cada aposta retida, que nunca paga prémios =====
   function getReservePct() { const el = document.getElementById('inputReserve'); return el ? Number(el.value) / 100 : 0; }
-  function getVault() { return totalBetStat * (1 - getReservePct()) - totalPayoutsStat; }
+  function getVault() { return totalBetStat * (1 - getReservePct()) - totalPayoutsStat + vaultTopUps; }
 
   // ===== Teases: quase-bónus (exatamente 2 Pirâmides) que nunca ativam o bónus =====
   function teaseChance() { const el = document.getElementById('inputTease'); return el ? Number(el.value) / 100 : 0; }
@@ -1285,7 +1365,7 @@
     const reels = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, n);
     const rows = [0, 1, 2, 3, 4].map(r => reels.includes(r) ? Math.floor(Math.random() * 3) : -1);
     let best = null, bw = Infinity;
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 400; i++) {
       const g = rows.map(b => generateReelSymbols(rtp, b));
       const w = evalGrid(g);
       if (w <= cap + 1e-9) return g;
@@ -1391,6 +1471,7 @@
     document.getElementById('admReservePct').innerText = _rp;
     document.getElementById('admReserve').innerText = (totalBetStat * _rp / 100).toFixed(2) + ' €';
     document.getElementById('admPrizeVault').innerText = Math.max(0, getVault()).toFixed(2) + ' €';
+    document.getElementById('admVaultTopUps').innerText = vaultTopUps.toFixed(2) + ' €';
     
     let collabShareAmt = Math.max(0, currentVault * (collabPercentage / 100));
     let techShareAmt = Math.max(0, currentVault - collabShareAmt);
@@ -1458,34 +1539,35 @@
 
     let spinsDone = 0, totalScatters = 0;
     const rtp = parseInt(document.getElementById('inputRtp').value);
-    const delayStep = isTurbo ? 60 : 130;
+    // 1) A máquina calcula TUDO antes de mostrar: RTP, volatilidade, teases e o cofre de prémios (a grelha final já respeita o cofre)
     const plannedGrid = planSpinGrid(rtp);
-
-    const startAt = []; let tAcc = 0, booksSeen = 0;
+    // 2) Os tambores começam a rolar logo (de cima para baixo) e o último pára aos 2 s (Turbo: mais rápido)
+    const T = isTurbo ? SPIN_MS_TURBO : SPIN_MS;
+    const stagger = isTurbo ? 60 : 150;
+    const FIN = isTurbo ? 150 : 250;   // pausa entre o último tambor parar e a jogada ser avaliada
+    const stopAt = []; let tAcc = 0, booksSeen = 0;
     for (let r = 0; r < 5; r++) {
       if (r > 0 && booksSeen >= 2) tAcc += isTurbo ? 260 : 700;   // com 2 Pirâmides à vista, os tambores seguintes demoram mais
-      startAt[r] = r * delayStep + tAcc;
+      stopAt[r] = Math.max(0, T - FIN - (4 - r) * stagger) + tAcc;
       if (plannedGrid[r].includes('📖')) booksSeen++;
     }
-    for(let r=0; r<5; r++) {
-      const waitExtra = r > 0 ? (startAt[r] - startAt[r-1] - delayStep) : 0;
-      if (waitExtra > 0) {
-        setTimeout(() => { document.getElementById(`reel-${r}`).classList.add('anticipate'); document.getElementById(`strip-${r}`).innerHTML = ''; tone(392 + r * 60, .55, 'sine', .05); }, startAt[r] - waitExtra);
+    for (let r = 0; r < 5; r++) startRoll(r, stopAt[r], plannedGrid[r]);
+    for (let r = 0; r < 5; r++) {
+      if (r > 0 && stopAt[r] - stopAt[r - 1] > stagger + 50) {
+        setTimeout(() => { document.getElementById(`reel-${r}`).classList.add('anticipate'); tone(392 + r * 60, .55, 'sine', .05); }, stopAt[r - 1]);
       }
       setTimeout(() => {
         const reelEl = document.getElementById(`reel-${r}`);
-        reelEl.classList.remove('anticipate');
         const stripEl = document.getElementById(`strip-${r}`);
-        reelEl.classList.add('cascading');
+        reelEl.classList.remove('anticipate', 'rolling');
+        stripEl.style.transition = 'none'; stripEl.style.transform = ''; stripEl.style.height = '';
         stripEl.innerHTML = '';
-
         const reelSyms = plannedGrid[r];
         gridState[r] = reelSyms;
-
         reelSyms.forEach(sym => {
           const div = document.createElement('div');
           div.className = 'symbol';
-          if(sym === '📖') {
+          if (sym === '📖') {
             totalScatters++;
             bonusBookCount++;
             div.classList.add('book-glow');
@@ -1494,16 +1576,41 @@
           div.innerHTML = symHTML(sym); div.dataset.sym = sym;
           stripEl.appendChild(div);
         });
-
-        setTimeout(() => reelEl.classList.remove('cascading'), isTurbo ? 180 : 350);
         playReelStop(r);
         spinsDone++;
-        if(spinsDone === 5) {
-          setTimeout(() => finishSpin(totalScatters), isTurbo ? 150 : 250);
+        if (spinsDone === 5) {
+          setTimeout(() => finishSpin(totalScatters), FIN);
         }
-      }, startAt[r]);
+      }, stopAt[r]);
     }
   }
+
+  // Rolagem de cima para baixo: [símbolos finais] + enchimento + [símbolos que já estavam], a tira desce até mostrar os finais
+  function startRoll(r, dur, finalSyms) {
+    if (dur < 120) return;
+    const reelEl = document.getElementById(`reel-${r}`), strip = document.getElementById(`strip-${r}`);
+    const old = [...strip.querySelectorAll('.symbol')].map(s => s.innerHTML);
+    const keys = Object.keys(IMG);
+    const n = 3 + Math.max(8, Math.round(dur / 70));
+    strip.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const div = document.createElement('div');
+      div.className = 'symbol';
+      div.style.flex = '0 0 ' + (100 / n) + '%'; div.style.height = (100 / n) + '%';
+      if (i < 3) div.innerHTML = symHTML(finalSyms[i]);
+      else if (i >= n - 3) div.innerHTML = old[i - (n - 3)] || symHTML(keys[Math.floor(Math.random() * keys.length)]);
+      else div.innerHTML = symHTML(keys[Math.floor(Math.random() * keys.length)]);
+      strip.appendChild(div);
+    }
+    strip.style.transition = 'none'; strip.style.height = (n * 100 / 3) + '%';
+    strip.style.transform = 'translateY(-' + ((n - 3) / n * 100) + '%)';
+    void strip.offsetHeight;
+    reelEl.classList.add('rolling');
+    strip.style.transition = 'transform ' + dur + 'ms cubic-bezier(.2,.72,.28,1.04)';
+    strip.style.transform = 'translateY(0)';
+    setTimeout(() => reelEl.classList.remove('rolling'), Math.max(0, dur - 380));
+  }
+
 
   function checkAndExpandSymbols() {
     if(!inFreeSpins || !expandingSymbol) return 0;
@@ -1580,10 +1687,12 @@
     let currentVault = getVault();
     const alreadyReserved = inFreeSpins ? bonusTotalWinAccumulated : 0;
     const availableVault = Math.max(0, currentVault - alreadyReserved);
+    const _rawWin = totalSpinWin;
     if (totalSpinWin > availableVault) {
       totalSpinWin = availableVault;
     }
     totalSpinWin = Math.min(totalSpinWin, maxAllowedWin(availableVault, getTotalBetCash()));
+    if (totalSpinWin < _rawWin - 1e-9) spinCutEvents++;
 
     if(scatters >= 3) {
       if (!inFreeSpins) {
@@ -1787,6 +1896,7 @@
     if(isNaN(val) || val <= 0) { alert("Valor inválido!"); return; }
     totalDepStat += val;
     depositsHistory.push(val);
+    depositsLog.push({ t: new Date(), v: val });
     balance += val;
     updateUI();
     closeModal('deposit-modal');
@@ -1816,6 +1926,7 @@
       let amount = balance;
       totalWithStat += amount;
       withdrawalsHistory.push(amount);
+      withdrawalsLog.push({ t: new Date(), v: amount });
       balance = 0;
       updateUI();
       closeModal('withdraw-modal');
@@ -1906,6 +2017,7 @@
     document.getElementById('cfgUnlockRow').style.display = locked ? 'block' : 'none';
     document.getElementById('lockCfgBtn').style.display = locked ? 'none' : 'block';
     document.getElementById('resetCounterBtn').style.display = locked ? 'none' : 'block';
+    document.getElementById('cfgVaultDep').style.display = locked ? 'none' : 'block';
   }
   function unlockCfg() {
     const p = document.getElementById('cfgTechPass');
@@ -1918,8 +2030,8 @@
     if (!silent) alert('Configurações bloqueadas!');
   }
   function resetCounter() {
-    if (!confirm('Zerar o contador (Total Apostado e Total de Prémios Pagos)?')) return;
-    totalBetStat = 0; totalPayoutsStat = 0; dryStreak = 0;
+    if (!confirm('Zerar o contador (Total Apostado, Total de Prémios Pagos e depósitos no cofre)?')) return;
+    totalBetStat = 0; totalPayoutsStat = 0; vaultTopUps = 0; vaultTopUpLog.length = 0; dryStreak = 0;
     updateUI();
     alert('Contador zerado.');
   }
@@ -1936,6 +2048,32 @@
       `<br>• Teases: ${t}% das jogadas; ${tb}% viram bónus se o cofre permitir → bónus extra ${extra > 0 ? '≈ 1 em ' + Math.round(1 / extra) + ' jogadas (agora)' : 'inativo (cofre abaixo de ' + VAULT_MIN_FOR_BOOKS + ' €)'}.` +
       `<br>• Compra de bónus: 3 Pirâmides garantidas; 4 com ${(25 * bf).toFixed(0)}% e 5 com ${(10 * bf).toFixed(0)}% (sobe com o cofre até 500 €); 8 / 10 / 12 Free Spins.`;
   }
+
+  // ===== Cofre de prémios: depósitos do técnico e históricos exportáveis =====
+  const depositsLog = [], withdrawalsLog = [], vaultTopUpLog = [];
+  function depositVault() {
+    const el = document.getElementById('vaultDepInput'); const v = parseFloat(el.value);
+    if (isNaN(v) || v <= 0) { alert('Valor inválido!'); return; }
+    vaultTopUps += v; vaultTopUpLog.push({ t: new Date(), v: v }); el.value = '';
+    updateUI(); alert('Depositado no cofre de prémios: ' + v.toFixed(2) + ' €');
+  }
+  function fmtDT(d) { const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()); }
+  function downloadText(name, text) {
+    const blob = new Blob(['\ufeff' + text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 1500);
+  }
+  function historyText(title, log, empty) {
+    const total = log.reduce(function (s, x) { return s + x.v; }, 0);
+    let t = 'KINGS OF EGYPT ' + GAME_VERSION + '\n' + title + '\nGerado em: ' + fmtDT(new Date()) + '\n' + '-'.repeat(44) + '\n';
+    if (!log.length) t += empty + '\n';
+    else log.forEach(function (x, i) { t += String(i + 1).padStart(4, '0') + '   ' + fmtDT(x.t) + '   ' + x.v.toFixed(2).padStart(10) + ' €\n'; });
+    return t + '-'.repeat(44) + '\nTotal de registos: ' + log.length + '\nValor total: ' + total.toFixed(2) + ' €\n';
+  }
+  function stamp() { return fmtDT(new Date()).slice(0, 10); }
+  function exportDepositHistory() { downloadText('historico_depositos_' + stamp() + '.txt', historyText('HISTÓRICO DE DEPÓSITOS', depositsLog, 'Nenhum depósito efetuado.')); }
+  function exportWithdrawalHistory() { downloadText('historico_levantamentos_' + stamp() + '.txt', historyText('HISTÓRICO DE LEVANTAMENTOS', withdrawalsLog, 'Nenhum levantamento efetuado.')); }
 
 
   function updateCollabCommission(val) {
@@ -2015,6 +2153,11 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
+  const GAME_VERSION = 'v1.47';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  document.getElementById('gameVersion').textContent = GAME_VERSION;
+  startSand(document.getElementById('sandGame'));
+  const stopLoadSand = startSand(document.getElementById('sandLoad'));
+
   // Auto-Spin: o botão mostra as voltas que restam
   const AUTO_FACE = document.getElementById('autoBtn').innerHTML;
   function syncAutoBtn() {
@@ -2050,7 +2193,7 @@
     setTimeout(ready, 8000);
     btn.addEventListener('click', function () {
       musicWanted = true; syncMusic(); getAudioContext(); unlockAudio();
-      ld.style.opacity = '0'; setTimeout(function () { ld.remove(); }, 650);
+      ld.style.opacity = '0'; setTimeout(function () { stopLoadSand(); ld.remove(); }, 650);
     });
   })();
 </script>
