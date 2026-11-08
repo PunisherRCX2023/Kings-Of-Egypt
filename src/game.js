@@ -219,7 +219,7 @@
       adminPassword, depositPassword, withdrawPassword, collabPercentage, isTurbo, soundEnabled, selectedAutoSpinsOption,
       inputs, grid: gridState,
       bonus: { inFreeSpins, freeSpinsLeft, bonusTotalWinAccumulated, expandingSymbol, pendingFreeSpins, pendingExpandChoice,
-        roulette: document.getElementById('bonus-roulette-modal').classList.contains('active'), celebration: bonusClosePending },
+        roulette: bonusWaiting || document.getElementById('bonus-roulette-modal').classList.contains('active'), celebration: bonusClosePending },
       pendingSpin
     };
   }
@@ -420,6 +420,8 @@
   ];
   function getVol() { const el = document.getElementById('inputVolatility'); const i = el ? Number(el.value) - 1 : 2; return VOL_LEVELS[Math.max(0, Math.min(4, i))]; }
   let pendingFreeSpins = 8;
+  let bonusWaiting = false;   // pausa entre o fim do giro com bónus e o ecrã de escolha do símbolo expansivo
+  const BONUS_REVEAL_MS = (typeof window.__spinMs === 'number') ? 0 : 4000;   // 4 s para ver o prémio da jogada e as Pirâmides
   let vaultTopUps = 0;      // dinheiro depositado no cofre de prémios pelo técnico
   let spinCutEvents = 0;    // (diagnóstico) quantas vezes um prémio teve de ser cortado — deve ficar sempre a 0
   const SPIN_MS = (typeof window.__spinMs === 'number') ? window.__spinMs : 2000;         // tempo de processamento de cada giro
@@ -929,9 +931,10 @@
         }
         if (autoSpinActive) autoSpinCount = Math.max(0, autoSpinCount - 1);
         updateUI();
-        disableBetControls(false);
-        document.getElementById('spinBtn').classList.remove('disabled');
-        openBonusRoulette();
+        // pausa de 4 s: dá para ver as Pirâmides, as linhas premiadas e o valor do prémio antes da escolha do símbolo expansivo
+        bonusWaiting = true; isSpinning = true;
+        document.getElementById('statusBanner').innerText = totalSpinWin > 0 ? 'BÓNUS ATIVADO! PRÉMIO ' + totalSpinWin.toFixed(2) + ' €' : 'BÓNUS ATIVADO!';
+        setTimeout(() => { bonusWaiting = false; isSpinning = false; openBonusRoulette(); saveGame(); }, BONUS_REVEAL_MS);
       } else {
         const extraSpins = scatters === 3 ? 8 : (scatters === 4 ? 10 : 12);
         freeSpinsLeft += extraSpins;
@@ -1380,7 +1383,7 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
-  const GAME_VERSION = 'v1.49';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  const GAME_VERSION = 'v1.50';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
   document.getElementById('gameVersion').textContent = GAME_VERSION;
   restoreGame();
   saveBlocked = false; saveGame();
@@ -1420,7 +1423,7 @@
     const ld = document.getElementById('loading'), fill = document.getElementById('ldFill'), btn = document.getElementById('ldBtn');
     const urls = Object.keys(IMG).map(function (k) { return IMG[k]; }).concat(IMG_UI);
     let done = 0, shown = false;
-    function ready() { if (shown) return; shown = true; fill.style.width = '100%'; document.getElementById('ldTxt').style.display = 'none'; btn.style.display = 'block'; }
+    function ready() { if (shown || !document.getElementById('ldTxt')) return; shown = true; fill.style.width = '100%'; document.getElementById('ldTxt').style.display = 'none'; btn.style.display = 'block'; }
     function tick() { done++; fill.style.width = Math.round(done / urls.length * 100) + '%'; if (done >= urls.length) setTimeout(ready, 250); }
     urls.forEach(function (u) { const i = new Image(); i.onload = i.onerror = tick; i.src = u; });
     setTimeout(ready, 8000);
