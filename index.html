@@ -577,7 +577,7 @@
   </div>
   <div class="grp">
   <div class="clock" id="clock">10:30</div>
-  <div class="ver" id="gameVersion">v1.48.1</div>
+  <div class="ver" id="gameVersion">v1.50</div>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
   <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/eye-of-horus.svg" alt="" draggable="false"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/scarab.svg" alt="" draggable="false"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/ankh.svg" alt="" draggable="false"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/djed-pillar.svg" alt="" draggable="false"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/feather-maat.svg" alt="" draggable="false"></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
@@ -1030,7 +1030,7 @@
     return true;
   }
   function unlockAudio() {
-    [startEl, endEl].concat(clickPool).forEach(a => {
+    [startEl, endEl, rollEl].concat(clickPool).forEach(a => {
       a.muted = true; const p = a.play();
       if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
     });
@@ -1059,6 +1059,7 @@
   function toggleSound() {
     soundEnabled = !soundEnabled;
     soundFace(); syncMusic();
+    if (!soundEnabled) { rollEl.pause(); }
     if (soundEnabled) getAudioContext();
   }
 
@@ -1139,7 +1140,7 @@
       adminPassword, depositPassword, withdrawPassword, collabPercentage, isTurbo, soundEnabled, selectedAutoSpinsOption,
       inputs, grid: gridState,
       bonus: { inFreeSpins, freeSpinsLeft, bonusTotalWinAccumulated, expandingSymbol, pendingFreeSpins, pendingExpandChoice,
-        roulette: document.getElementById('bonus-roulette-modal').classList.contains('active'), celebration: bonusClosePending },
+        roulette: bonusWaiting || document.getElementById('bonus-roulette-modal').classList.contains('active'), celebration: bonusClosePending },
       pendingSpin
     };
   }
@@ -1340,6 +1341,8 @@
   ];
   function getVol() { const el = document.getElementById('inputVolatility'); const i = el ? Number(el.value) - 1 : 2; return VOL_LEVELS[Math.max(0, Math.min(4, i))]; }
   let pendingFreeSpins = 8;
+  let bonusWaiting = false;   // pausa entre o fim do giro com bónus e o ecrã de escolha do símbolo expansivo
+  const BONUS_REVEAL_MS = (typeof window.__spinMs === 'number') ? 0 : 4000;   // 4 s para ver o prémio da jogada e as Pirâmides
   let vaultTopUps = 0;      // dinheiro depositado no cofre de prémios pelo técnico
   let spinCutEvents = 0;    // (diagnóstico) quantas vezes um prémio teve de ser cortado — deve ficar sempre a 0
   const SPIN_MS = (typeof window.__spinMs === 'number') ? window.__spinMs : 2000;         // tempo de processamento de cada giro
@@ -1657,7 +1660,6 @@
 
     isSpinning = true;
     bonusBookCount = 0;
-    playReelRoll();
     disableBetControls(true);
     
     if (autoSpinActive) {
@@ -1685,9 +1687,12 @@
     const stagger = isTurbo ? 60 : 150;
     const FIN = isTurbo ? 150 : 250;   // pausa entre o último tambor parar e a jogada ser avaliada
     const stopAt = []; let tAcc = 0, booksSeen = 0;
+    // Giro normal (casa com assets/sounds/roll.mp3): 1.º tambor aos 1 s e os outros de 0,5 em 0,5 s -> 1 / 1,5 / 2 / 2,5 / 3 s
+    const NORMAL_STOPS = [1000, 1500, 2000, 2500, 3000];
+    const useFormula = isTurbo || typeof window.__spinMs === 'number';
     for (let r = 0; r < 5; r++) {
       if (r > 0 && booksSeen >= 2) tAcc += isTurbo ? 260 : 700;   // com 2 Pirâmides à vista, os tambores seguintes demoram mais
-      stopAt[r] = Math.max(0, T - FIN - (4 - r) * stagger) + tAcc;
+      stopAt[r] = (useFormula ? Math.max(0, T - FIN - (4 - r) * stagger) : NORMAL_STOPS[r]) + tAcc;
       if (plannedGrid[r].includes('📖')) booksSeen++;
     }
     startRollSound();
@@ -1847,9 +1852,10 @@
         }
         if (autoSpinActive) autoSpinCount = Math.max(0, autoSpinCount - 1);
         updateUI();
-        disableBetControls(false);
-        document.getElementById('spinBtn').classList.remove('disabled');
-        openBonusRoulette();
+        // pausa de 4 s: dá para ver as Pirâmides, as linhas premiadas e o valor do prémio antes da escolha do símbolo expansivo
+        bonusWaiting = true; isSpinning = true;
+        document.getElementById('statusBanner').innerText = totalSpinWin > 0 ? 'BÓNUS ATIVADO! PRÉMIO ' + totalSpinWin.toFixed(2) + ' €' : 'BÓNUS ATIVADO!';
+        setTimeout(() => { bonusWaiting = false; isSpinning = false; openBonusRoulette(); saveGame(); }, BONUS_REVEAL_MS);
       } else {
         const extraSpins = scatters === 3 ? 8 : (scatters === 4 ? 10 : 12);
         freeSpinsLeft += extraSpins;
@@ -2298,7 +2304,7 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
-  const GAME_VERSION = 'v1.48.1';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  const GAME_VERSION = 'v1.50';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
   document.getElementById('gameVersion').textContent = GAME_VERSION;
   restoreGame();
   saveBlocked = false; saveGame();
@@ -2338,7 +2344,7 @@
     const ld = document.getElementById('loading'), fill = document.getElementById('ldFill'), btn = document.getElementById('ldBtn');
     const urls = Object.keys(IMG).map(function (k) { return IMG[k]; }).concat(IMG_UI);
     let done = 0, shown = false;
-    function ready() { if (shown) return; shown = true; fill.style.width = '100%'; document.getElementById('ldTxt').style.display = 'none'; btn.style.display = 'block'; }
+    function ready() { if (shown || !document.getElementById('ldTxt')) return; shown = true; fill.style.width = '100%'; document.getElementById('ldTxt').style.display = 'none'; btn.style.display = 'block'; }
     function tick() { done++; fill.style.width = Math.round(done / urls.length * 100) + '%'; if (done >= urls.length) setTimeout(ready, 250); }
     urls.forEach(function (u) { const i = new Image(); i.onload = i.onerror = tick; i.src = u; });
     setTimeout(ready, 8000);
