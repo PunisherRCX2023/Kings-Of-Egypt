@@ -51,7 +51,7 @@
     }
   }
   // ===== Áudio do jogo (ficheiros em assets/sounds) =====
-  const SND = { music: 'assets/sounds/backgroundmusic.mp3', click: 'assets/sounds/click.mp3', start: 'assets/sounds/bonus_start.mp3', end: 'assets/sounds/bonus_end.mp3' };
+  const SND = { music: 'assets/sounds/backgroundmusic.mp3', click: 'assets/sounds/click.mp3', start: 'assets/sounds/bonus_start.mp3', end: 'assets/sounds/bonus_end.mp3', roll: 'assets/sounds/roll.mp3' };
   const MUSIC_VOL = 0.32;
   const music = new Audio(SND.music);
   music.loop = true; music.preload = 'auto'; music.volume = MUSIC_VOL;
@@ -81,6 +81,21 @@
   // Elementos próprios para os sons do bónus, "desbloqueados" no primeiro toque (o iOS só deixa tocar áudio já autorizado por um toque)
   const startEl = new Audio(SND.start), endEl = new Audio(SND.end);
   [startEl, endEl].forEach(a => { a.preload = 'auto'; a.volume = 0.9; });
+  // Som da rolagem dos tambores (assets/sounds/roll.mp3): toca em loop até o último tambor parar
+  const ROLL_VOL = 0.7;
+  const rollEl = new Audio(SND.roll); rollEl.preload = 'auto'; rollEl.loop = true; rollEl.volume = ROLL_VOL;
+  let rollFade = null;
+  function startRollSound() {
+    if (!soundEnabled) return;
+    if (rollFade) { clearInterval(rollFade); rollFade = null; }
+    try { rollEl.currentTime = 0; rollEl.volume = ROLL_VOL; const p = rollEl.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  }
+  function stopRollSound() {   // fade curto no fim (no iOS o volume é fixo e pára de imediato)
+    if (rollEl.paused) return;
+    if (rollFade) clearInterval(rollFade);
+    let v = rollEl.volume;
+    rollFade = setInterval(() => { v -= ROLL_VOL / 6; if (v <= 0.02) { clearInterval(rollFade); rollFade = null; rollEl.pause(); rollEl.volume = ROLL_VOL; } else rollEl.volume = v; }, 25);
+  }
   const bufCache = {};
   function playBuf(src, vol) {   // alternativa via Web Audio
     const ctx = getAudioContext(); if (!ctx) return;
@@ -94,7 +109,7 @@
     return true;
   }
   function unlockAudio() {
-    [startEl, endEl].concat(clickPool).forEach(a => {
+    [startEl, endEl, rollEl].concat(clickPool).forEach(a => {
       a.muted = true; const p = a.play();
       if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
     });
@@ -123,6 +138,7 @@
   function toggleSound() {
     soundEnabled = !soundEnabled;
     soundFace(); syncMusic();
+    if (!soundEnabled) { rollEl.pause(); }
     if (soundEnabled) getAudioContext();
   }
 
@@ -721,7 +737,6 @@
 
     isSpinning = true;
     bonusBookCount = 0;
-    playReelRoll();
     disableBetControls(true);
     
     if (autoSpinActive) {
@@ -749,11 +764,15 @@
     const stagger = isTurbo ? 60 : 150;
     const FIN = isTurbo ? 150 : 250;   // pausa entre o último tambor parar e a jogada ser avaliada
     const stopAt = []; let tAcc = 0, booksSeen = 0;
+    // Giro normal (casa com assets/sounds/roll.mp3): 1.º tambor aos 1 s e os outros de 0,5 em 0,5 s -> 1 / 1,5 / 2 / 2,5 / 3 s
+    const NORMAL_STOPS = [1000, 1500, 2000, 2500, 3000];
+    const useFormula = isTurbo || typeof window.__spinMs === 'number';
     for (let r = 0; r < 5; r++) {
       if (r > 0 && booksSeen >= 2) tAcc += isTurbo ? 260 : 700;   // com 2 Pirâmides à vista, os tambores seguintes demoram mais
-      stopAt[r] = Math.max(0, T - FIN - (4 - r) * stagger) + tAcc;
+      stopAt[r] = (useFormula ? Math.max(0, T - FIN - (4 - r) * stagger) : NORMAL_STOPS[r]) + tAcc;
       if (plannedGrid[r].includes('📖')) booksSeen++;
     }
+    startRollSound();
     for (let r = 0; r < 5; r++) startRoll(r, stopAt[r], plannedGrid[r]);
     for (let r = 0; r < 5; r++) {
       if (r > 0 && stopAt[r] - stopAt[r - 1] > stagger + 50) {
@@ -782,6 +801,7 @@
         playReelStop(r);
         spinsDone++;
         if (spinsDone === 5) {
+          stopRollSound();
           setTimeout(() => finishSpinSaved(totalScatters), FIN);
         }
       }, stopAt[r]);
@@ -1360,7 +1380,7 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
-  const GAME_VERSION = 'v1.48';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  const GAME_VERSION = 'v1.49';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
   document.getElementById('gameVersion').textContent = GAME_VERSION;
   restoreGame();
   saveBlocked = false; saveGame();
