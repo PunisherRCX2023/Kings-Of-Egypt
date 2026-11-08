@@ -972,7 +972,7 @@
     }
   }
   // ===== Áudio do jogo (ficheiros em assets/sounds) =====
-  const SND = { music: 'assets/sounds/backgroundmusic.mp3', click: 'assets/sounds/click.mp3', start: 'assets/sounds/bonus_start.mp3', end: 'assets/sounds/bonus_end.mp3' };
+  const SND = { music: 'assets/sounds/backgroundmusic.mp3', click: 'assets/sounds/click.mp3', start: 'assets/sounds/bonus_start.mp3', end: 'assets/sounds/bonus_end.mp3', roll: 'assets/sounds/roll.mp3' };
   const MUSIC_VOL = 0.32;
   const music = new Audio(SND.music);
   music.loop = true; music.preload = 'auto'; music.volume = MUSIC_VOL;
@@ -1002,6 +1002,21 @@
   // Elementos próprios para os sons do bónus, "desbloqueados" no primeiro toque (o iOS só deixa tocar áudio já autorizado por um toque)
   const startEl = new Audio(SND.start), endEl = new Audio(SND.end);
   [startEl, endEl].forEach(a => { a.preload = 'auto'; a.volume = 0.9; });
+  // Som da rolagem dos tambores (assets/sounds/roll.mp3): toca em loop até o último tambor parar
+  const ROLL_VOL = 0.7;
+  const rollEl = new Audio(SND.roll); rollEl.preload = 'auto'; rollEl.loop = true; rollEl.volume = ROLL_VOL;
+  let rollFade = null;
+  function startRollSound() {
+    if (!soundEnabled) return;
+    if (rollFade) { clearInterval(rollFade); rollFade = null; }
+    try { rollEl.currentTime = 0; rollEl.volume = ROLL_VOL; const p = rollEl.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  }
+  function stopRollSound() {   // fade curto no fim (no iOS o volume é fixo e pára de imediato)
+    if (rollEl.paused) return;
+    if (rollFade) clearInterval(rollFade);
+    let v = rollEl.volume;
+    rollFade = setInterval(() => { v -= ROLL_VOL / 6; if (v <= 0.02) { clearInterval(rollFade); rollFade = null; rollEl.pause(); rollEl.volume = ROLL_VOL; } else rollEl.volume = v; }, 25);
+  }
   const bufCache = {};
   function playBuf(src, vol) {   // alternativa via Web Audio
     const ctx = getAudioContext(); if (!ctx) return;
@@ -1675,6 +1690,7 @@
       stopAt[r] = Math.max(0, T - FIN - (4 - r) * stagger) + tAcc;
       if (plannedGrid[r].includes('📖')) booksSeen++;
     }
+    startRollSound();
     for (let r = 0; r < 5; r++) startRoll(r, stopAt[r], plannedGrid[r]);
     for (let r = 0; r < 5; r++) {
       if (r > 0 && stopAt[r] - stopAt[r - 1] > stagger + 50) {
@@ -1703,6 +1719,7 @@
         playReelStop(r);
         spinsDone++;
         if (spinsDone === 5) {
+          stopRollSound();
           setTimeout(() => finishSpinSaved(totalScatters), FIN);
         }
       }, stopAt[r]);
