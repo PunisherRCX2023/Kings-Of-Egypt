@@ -546,28 +546,6 @@
     .cofre-hist .cbox .history-box { font-size: 11px; color: #ddd; max-height: 120px; overflow: auto; }
     .cofre-hist .btn-action { margin-top: 4px; padding: 8px 6px; font-size: 11px; }
     .vault-dep { margin-top: 8px; }
-
-    /* ===== v1.51: gamble, limites do auto-spin, símbolos expansivos múltiplos ===== */
-    .expanding-banner .icon { width: auto; display: inline-flex; align-items: center; gap: calc(var(--u) * 6); }
-    .expanding-banner .icon img { width: auto; height: calc(var(--u) * 76); }
-    .gamble-card { width: 92px; height: 130px; margin: 10px auto; border-radius: 10px; border: 3px solid #d9a940; display: flex; align-items: center; justify-content: center; font-size: 58px; font-weight: 900; color: #ffe9b0;
-      background: repeating-linear-gradient(45deg, #3b1a0e, #3b1a0e 8px, #5a2a14 8px, #5a2a14 16px); box-shadow: 0 6px 18px rgba(0,0,0,.6); }
-    .gamble-card.red { background: #fff; color: #c62828; } .gamble-card.black { background: #fff; color: #111; }
-    .gamble-card.flip { animation: cardFlip .45s ease-out; }
-    @keyframes cardFlip { from { transform: rotateY(90deg) scale(.9); } to { transform: none; } }
-    .gamble-history { display: flex; justify-content: center; gap: 6px; min-height: 26px; margin-bottom: 8px; }
-    .gh { width: 26px; height: 26px; border-radius: 5px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; }
-    .gh.red { color: #c62828; } .gh.black { color: #111; }
-    .gamble-opts { display: flex; gap: 8px; margin-bottom: 8px; }
-    .gamble-opts .g-btn { flex: 1; min-height: 54px; border-radius: 10px; border: 2px solid #d9a940; font-weight: 900; font-size: 15px; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
-    .gamble-opts .g-btn small { font-size: 11px; font-weight: 700; opacity: .9; }
-    .gamble-opts.four .g-btn { font-size: 26px; }
-    .g-btn.red { background: linear-gradient(180deg, #e04848, #a31717); } .g-btn.black { background: linear-gradient(180deg, #3a3a42, #121216); }
-    .g-btn:disabled { opacity: .35; }
-    .auto-limits { margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(212,174,80,.3); }
-    .auto-limits input[type=number] { width: 100%; }
-
-    .gamble-offer { display: none; z-index: 7; border: 2px solid #fff1a6; border-radius: calc(var(--u) * 22); font-weight: 900; font-size: calc(var(--u) * 28); letter-spacing: .05em; color: #3a2102; background: linear-gradient(180deg, #ffe27a, #e0a416); box-shadow: 0 calc(var(--u) * 4) calc(var(--u) * 10) rgba(0,0,0,.6); }
 </style>
 </head>
 <body>
@@ -599,15 +577,14 @@
   </div>
   <div class="grp">
   <div class="clock" id="clock">10:30</div>
-  <div class="ver" id="gameVersion">v1.51</div>
+  <div class="ver" id="gameVersion">v1.50</div>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
   <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/eye-of-horus.svg" alt="" draggable="false"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/scarab.svg" alt="" draggable="false"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/ankh.svg" alt="" draggable="false"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/djed-pillar.svg" alt="" draggable="false"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/feather-maat.svg" alt="" draggable="false"></div>
-  <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);"><span id="expLabel">SÍMBOLO EXPANSIVO:</span><span class="icon" id="expSymbolIcon"></span></div>
+  <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);">SÍMBOLO EXPANSIVO: <span class="icon" id="expSymbolIcon"></span></div>
   <img class="slot-img" src="assets/img/slot.png" alt="" style="left:calc(var(--u)*0.00);top:calc(var(--u)*322.00);width:calc(var(--u)*768.00);height:calc(var(--u)*537.00);">
   <div class="reels-container" id="reelsContainer" style="left:calc(var(--u)*51.00);top:calc(var(--u)*345.00);width:calc(var(--u)*664.00);height:calc(var(--u)*385.00);"><div class="reel" id="reel-0"><div class="reel-strip" id="strip-0"></div></div><div class="reel" id="reel-1"><div class="reel-strip" id="strip-1"></div></div><div class="reel" id="reel-2"><div class="reel-strip" id="strip-2"></div></div><div class="reel" id="reel-3"><div class="reel-strip" id="strip-3"></div></div><div class="reel" id="reel-4"><div class="reel-strip" id="strip-4"></div></div></div>
   <div class="stat-val" id="balanceDisplay" style="left:calc(var(--u)*135.00);top:calc(var(--u)*819.00)">0.00 €</div><div class="stat-val" id="totalBetDisplay" style="left:calc(var(--u)*383.00);top:calc(var(--u)*819.00)">0.10 €</div><div class="stat-val" id="winDisplay" style="left:calc(var(--u)*631.50);top:calc(var(--u)*819.00)">0.00 €</div>
   <div class="win-popup" id="winPopup" style="left:calc(var(--u)*383.00);top:calc(var(--u)*537.00)"></div>
-  <button type="button" class="gamble-offer" id="gambleOfferBtn" onclick="openGamble(gambleOffer)" style="left:calc(var(--u)*548.00);top:calc(var(--u)*862.00);width:calc(var(--u)*180.00);height:calc(var(--u)*44.00);">GAMBLE</button>
   <div class="status-banner" id="statusBanner" style="left:calc(var(--u)*40.00);top:calc(var(--u)*864.00);width:calc(var(--u)*688.00);height:calc(var(--u)*38.00);">PRESSIONE JOGAR PARA COMEÇAR</div>
   <div class="spin-btn" id="spinBtn" role="button" aria-label="Jogar" onclick="handleSpinButtonAction()" style="left:calc(var(--u)*280.39);top:calc(var(--u)*913.29);width:calc(var(--u)*206.00);height:calc(var(--u)*206.00);"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M50 27A20 20 0 0 0 14 22" fill="none" stroke="#ffe9a8" stroke-width="6" stroke-linecap="round"/><path d="M14 37A20 20 0 0 0 50 42" fill="none" stroke="#ffe9a8" stroke-width="6" stroke-linecap="round"/><path d="M55 12v18H37zM9 52V34h18z" fill="#ffe9a8"/></svg><span>JOGAR</span></div>
   <button type="button" class="btn-autospin-trigger" id="autoBtn" onclick="openAutoSpinModal()" style="left:calc(var(--u)*330.89);top:calc(var(--u)*1154.87);width:calc(var(--u)*105.00);height:calc(var(--u)*105.00);"><b>AUTO</b><b>SPIN</b></button>
@@ -699,26 +676,6 @@
   </div>
 
   <!-- BONUS BUY MODAL -->
-      <div class="modal" id="gamble-modal">
-      <div class="modal-header"><span>GAMBLE</span></div>
-      <div style="text-align:center; font-size:12px; color:#bbb;">Prémio em jogo</div>
-      <div id="gambleStake" style="text-align:center; font-size:30px; font-weight:900; color:#7cd927;">0.00 €</div>
-      <div class="gamble-card" id="gambleCard">?</div>
-      <div id="gambleHistory" class="gamble-history"></div>
-      <div class="gamble-opts">
-        <button class="g-btn g-color red" onclick="gamblePick('red')">VERMELHO<small>× 2</small></button>
-        <button class="g-btn g-color black" onclick="gamblePick('black')">PRETO<small>× 2</small></button>
-      </div>
-      <div class="gamble-opts four">
-        <button class="g-btn g-suit red" onclick="gamblePick('♥')">♥<small>× 4</small></button>
-        <button class="g-btn g-suit red" onclick="gamblePick('♦')">♦<small>× 4</small></button>
-        <button class="g-btn g-suit black" onclick="gamblePick('♣')">♣<small>× 4</small></button>
-        <button class="g-btn g-suit black" onclick="gamblePick('♠')">♠<small>× 4</small></button>
-      </div>
-      <div id="gambleInfoLine" style="text-align:center; font-size:11px; color:#aaa; margin:8px 0;"></div>
-      <button class="btn-action" onclick="gambleCollect()">RECOLHER</button>
-    </div>
-
   <div class="modal" id="bonusbuy-modal">
     <div class="modal-header">
       <div class="modal-title">Comprar Rodadas Grátis</div>
@@ -726,7 +683,7 @@
     </div>
     <div style="text-align:center; padding: 15px 0;">
       <div class="bb-icon"></div>
-      <div style="font-size:16px; color:#ffda73; font-weight:bold; margin-top:10px;">8 Free Spins com Símbolo Expansivo</div>
+      <div style="font-size:16px; color:#ffda73; font-weight:bold; margin-top:10px;">8 a 12 Free Spins com Símbolo Expansivo</div>
       <div style="font-size:12px; color:#aaa; margin: 10px 0;">Custo: 10× Valor da Aposta Total</div>
       <div style="font-size:24px; color:#7cd927; font-weight:bold; margin-bottom:15px;" id="bonusBuyPrice">10.00 €</div>
       <button class="btn-action" style="width:100%; font-size:14px;" onclick="confirmBonusBuy()">COMPRAR BÓNUS AGORA</button>
@@ -784,14 +741,6 @@
       <div style="font-size:11px; color:#7cd927; text-align:center; margin-top:10px;">
         10 Linhas de Pagamento Fixas
       </div>
-      <div class="auto-limits">
-        <div class="pt-lines-title">Auto-Spin — limites</div>
-        <label style="font-size:11px; color:#aaa;">Parar se um prémio for igual ou superior a (€) — 0 = desligado</label>
-        <input type="number" id="inputAutoWinLimit" class="form-control" min="0" step="0.01" inputmode="decimal" value="0">
-        <label style="font-size:11px; color:#aaa; margin-top:8px; display:block;">Parar se o saldo ficar abaixo de (€) — 0 = desligado</label>
-        <input type="number" id="inputAutoBalLimit" class="form-control" min="0" step="0.01" inputmode="decimal" value="0">
-        <label style="font-size:12px; color:#ddd; margin-top:10px; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="chkAutoStopBonus" checked style="width:auto;"> Parar quando sair bónus</label>
-      </div>
     </div>
 
     <div class="tab-content" id="tab-paytable">
@@ -805,14 +754,12 @@
       <div style="color:#ffda73; font-weight:bold; font-size:13px;">Regras do Kings of Egypt</div>
       <div>• <b>Jogo fictício:</b> utiliza apenas créditos virtuais, sem dinheiro real.</div>
       <div>• <b>Grelha & Linhas:</b> 5 tambores, 3 filas e 10 linhas de pagamento fixas (ver separador Prémios). Os prémios pagam da esquerda para a direita.</div>
-      <div>• <b>Pirâmide (Wild e Scatter):</b> substitui os restantes símbolos e é o Scatter: com 3, 4 ou 5 Pirâmides em qualquer posição paga 2×, 20× ou 200× o total apostado. Surge no máximo 1 vez por tambor, e o mesmo símbolo alto não se repete no mesmo tambor.</div>
-      <div>• <b>Free Spins:</b> 3, 4 ou 5 Pirâmides ativam 8 Free Spins, com um Símbolo Expansivo sorteado por roleta.</div>
+      <div>• <b>Pirâmide (Wild e Scatter):</b> substitui os restantes símbolos e é o Scatter. Surge no máximo 1 vez por tambor, e o mesmo símbolo alto não se repete no mesmo tambor.</div>
+      <div>• <b>Free Spins:</b> 3 Pirâmides ativam 8 Free Spins (4 dão 10 e 5 dão 12), com um Símbolo Expansivo sorteado por roleta.</div>
       <div>• <b>Símbolo Expansivo:</b> nos Free Spins, expande-se pelo tambor inteiro quando aparece em 2 ou mais tambores (símbolos altos) ou em 3 ou mais (símbolos baixos).</div>
-      <div>• <b>Re-trigger:</b> cada vez que saem 3 ou mais Pirâmides nos Free Spins ganha +8 spins e um novo Símbolo Expansivo (até 9 ativos ao mesmo tempo; com os 9 ativos, +10 spins).</div>
+      <div>• <b>Re-trigger:</b> 3 Pirâmides durante os Free Spins dão +8 spins, 4 dão +10 e 5 dão +12.</div>
       <div>• <b>Comprar Bónus:</b> disponível com aposta total de 1,00 € ou mais; custa 10× a aposta total. A máquina faz uma jogada grátis que ativa 3, 4 ou 5 Pirâmides (4 e 5 são mais raras e dependem do cofre).</div>
-      <div>• <b>Turbo e Auto-Spin:</b> o Turbo acelera as rodadas; o Auto-Spin joga 10, 20, 50, 75, 100 ou 200 rodadas e pára a qualquer momento. Em Menu > Apostas pode definir limites: parar com um prémio, com um saldo mínimo ou quando sair bónus.</div>
-      <div>• <b>Gamble:</b> depois de um prémio no jogo normal (fora de Auto-Spin e de Free Spins) aparece durante alguns segundos o botão GAMBLE: pode apostar o prémio na cor (× 2) ou no naipe (× 4), até 5 vezes seguidas. Só fica disponível se o cofre de prémios cobrir o ganho. Se jogar de novo, o prémio fica recolhido.</div>
-      <div>• <b>Prémio máximo:</b> nenhuma jogada paga mais de 5.000× o total apostado.</div>
+      <div>• <b>Turbo e Auto-Spin:</b> o Turbo acelera as rodadas; o Auto-Spin joga 10, 20, 50, 75, 100 ou 200 rodadas e pára a qualquer momento.</div>
     </div>
 
     <div class="tab-content" id="tab-admin">
@@ -1177,7 +1124,7 @@
 
   // ===== Guardar e restaurar o jogo (fica guardado no navegador, mesmo que o jogo seja desligado) =====
   const SAVE_KEY = 'kingsOfEgypt.save';
-  const SAVE_INPUTS = ['inputRtp', 'inputVolatility', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease', 'inputTeaseBonus', 'inputCoinValueIndex', 'inputCoinsPerLine', 'inputAutoWinLimit', 'inputAutoBalLimit'];
+  const SAVE_INPUTS = ['inputRtp', 'inputVolatility', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease', 'inputTeaseBonus', 'inputCoinValueIndex', 'inputCoinsPerLine'];
   let saveBlocked = true;          // só passa a false depois de restaurar (evita gravar o estado inicial por cima do guardado)
   let pendingSpin = null;          // giro em curso: a grelha já decidida fica guardada, para o resultado nunca se perder
   let pendingExpandChoice = null;  // símbolo expansivo já sorteado
@@ -1186,14 +1133,13 @@
   const logIn = a => (a || []).map(x => ({ t: new Date(x.t), v: Number(x.v) || 0 }));
   function gameSnapshot() {
     const inputs = {}; SAVE_INPUTS.forEach(id => { const el = document.getElementById(id); if (el) inputs[id] = el.value; });
-    const checks = { chkAutoStopBonus: document.getElementById('chkAutoStopBonus').checked };
     return {
       v: 1, savedAt: Date.now(), version: (typeof GAME_VERSION !== 'undefined' ? GAME_VERSION : ''),
       balance, totalBetStat, totalPayoutsStat, totalDepStat, totalWithStat, vaultTopUps, dryStreak,
       depositsHistory, withdrawalsHistory, depositsLog: logOut(depositsLog), withdrawalsLog: logOut(withdrawalsLog), vaultTopUpLog: logOut(vaultTopUpLog),
       adminPassword, depositPassword, withdrawPassword, collabPercentage, isTurbo, soundEnabled, selectedAutoSpinsOption,
-      inputs, checks, grid: gridState,
-      bonus: { inFreeSpins, freeSpinsLeft, bonusTotalWinAccumulated, expandingSymbols, pendingFreeSpins, pendingExpandChoice,
+      inputs, grid: gridState,
+      bonus: { inFreeSpins, freeSpinsLeft, bonusTotalWinAccumulated, expandingSymbol, pendingFreeSpins, pendingExpandChoice,
         roulette: bonusWaiting || document.getElementById('bonus-roulette-modal').classList.contains('active'), celebration: bonusClosePending },
       pendingSpin
     };
@@ -1229,7 +1175,6 @@
     selectedAutoSpinsOption = num(s.selectedAutoSpinsOption, 10);
     // definições (sliders) -> dispara o evento "input" para atualizar também os textos de cada slider
     Object.keys(s.inputs || {}).forEach(id => { const el = document.getElementById(id); if (el) { el.value = s.inputs[id]; el.dispatchEvent(new Event('input')); } });
-    if (s.checks && typeof s.checks.chkAutoStopBonus === 'boolean') document.getElementById('chkAutoStopBonus').checked = s.checks.chkAutoStopBonus;
     updateCollabCommission(num(s.collabPercentage, 20));
     if (s.isTurbo && !isTurbo) toggleTurbo();
     if (s.soundEnabled === false && soundEnabled) toggleSound();
@@ -1237,8 +1182,8 @@
     const b = s.bonus || {};
     pendingFreeSpins = num(b.pendingFreeSpins, 8); pendingExpandChoice = b.pendingExpandChoice || null;
     if (b.inFreeSpins) {
-      inFreeSpins = true; freeSpinsLeft = num(b.freeSpinsLeft, 0); bonusTotalWinAccumulated = num(b.bonusTotalWinAccumulated, 0); expandingSymbols = Array.isArray(b.expandingSymbols) ? b.expandingSymbols.filter(s => IMG[s]) : (b.expandingSymbol ? [b.expandingSymbol] : []);
-      refreshExpBanner();
+      inFreeSpins = true; freeSpinsLeft = num(b.freeSpinsLeft, 0); bonusTotalWinAccumulated = num(b.bonusTotalWinAccumulated, 0); expandingSymbol = b.expandingSymbol || '';
+      if (expandingSymbol) { document.getElementById('expSymbolIcon').innerHTML = symHTML(expandingSymbol); document.getElementById('expandingSymbolBanner').style.display = 'block'; }
       disableBetControls(true); document.getElementById('spinBtn').classList.add('disabled');
       document.getElementById('statusBanner').innerText = 'FREE SPINS: ' + freeSpinsLeft + ' RESTANTES';
       document.getElementById('winDisplay').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
@@ -1290,71 +1235,6 @@
     location.reload();
   }
 
-  // ===== Gamble opcional (como no Legacy of Dead): cor x2 ou naipe x4, até 5 vezes seguidas =====
-  const GAMBLE_ENABLED = (typeof window.__spinMs !== 'number');
-  const GAMBLE_MAX_TIMES = 5;
-  let gambleStake = 0, gambleTimes = 0, gambleBusy = false, gambleHist = [];
-  function gambleOk(m) {   // só deixa apostar se o cofre de prémios cobrir o ganho e o valor não passar 500x o total apostado
-    return gambleTimes < GAMBLE_MAX_TIMES && gambleStake * m <= 500 * getTotalBetCash() && getVault() >= gambleStake * (m - 1) - 1e-9;
-  }
-  function gambleRefresh() {
-    document.getElementById('gambleStake').innerText = gambleStake.toFixed(2) + ' €';
-    const o2 = gambleOk(2), o4 = gambleOk(4);
-    document.querySelectorAll('#gamble-modal .g-color').forEach(b => { b.disabled = gambleBusy || !o2; });
-    document.querySelectorAll('#gamble-modal .g-suit').forEach(b => { b.disabled = gambleBusy || !o4; });
-    document.getElementById('gambleInfoLine').innerText = (o2 || o4)
-      ? 'Cor: ' + (gambleStake * 2).toFixed(2) + ' €  ·  Naipe: ' + (gambleStake * 4).toFixed(2) + ' €  ·  ainda ' + (GAMBLE_MAX_TIMES - gambleTimes) + ' vez(es)'
-      : 'Não é possível apostar mais: recolhe o prémio.';
-    document.getElementById('gambleHistory').innerHTML = gambleHist.slice(0, 5).map(h => '<span class="gh ' + h.color + '">' + h.suit + '</span>').join('');
-  }
-  // Depois de um prémio aparece o botão GAMBLE durante alguns segundos (é opcional; ao jogar de novo desaparece)
-  let gambleOffer = 0, gambleOfferTimer = null;
-  function hideGambleOffer() { gambleOffer = 0; clearTimeout(gambleOfferTimer); const b = document.getElementById('gambleOfferBtn'); if (b) b.style.display = 'none'; }
-  function offerGamble(win) {
-    if (!GAMBLE_ENABLED || win <= 0) return;
-    gambleOffer = win; document.getElementById('gambleOfferBtn').style.display = 'block';
-    clearTimeout(gambleOfferTimer); gambleOfferTimer = setTimeout(hideGambleOffer, 8000);
-  }
-  function openGamble(win) {
-    if (!GAMBLE_ENABLED || isSpinning || inFreeSpins || autoSpinActive || win <= 0) return;
-    hideGambleOffer();
-    gambleStake = win; gambleTimes = 0; gambleBusy = false; gambleHist = [];
-    const card = document.getElementById('gambleCard'); card.className = 'gamble-card'; card.textContent = '?';
-    gambleRefresh();
-    document.getElementById('gamble-modal').classList.add('active');
-  }
-  function gamblePick(choice) {
-    if (gambleBusy) return;
-    const isColor = choice === 'red' || choice === 'black', m = isColor ? 2 : 4;
-    if (!gambleOk(m)) return;
-    gambleBusy = true;
-    const suit = ['♥', '♦', '♣', '♠'][Math.floor(Math.random() * 4)];
-    const color = (suit === '♥' || suit === '♦') ? 'red' : 'black';
-    const won = isColor ? (choice === color) : (choice === suit);
-    const card = document.getElementById('gambleCard'); card.className = 'gamble-card flip ' + color; card.textContent = suit;
-    gambleHist.unshift({ suit: suit, color: color });
-    if (won) {
-      const extra = gambleStake * (m - 1);
-      balance += extra; totalPayoutsStat += extra; gambleStake += extra; gambleTimes++;
-      document.getElementById('winDisplay').innerText = gambleStake.toFixed(2) + ' €';
-      tone(784, .15, 'triangle', .06); tone(1047, .3, 'triangle', .06, .1);
-      updateUI(); gambleRefresh(); showWinPopup(gambleStake);
-      setTimeout(() => { gambleBusy = false; if (!gambleOk(2) && !gambleOk(4)) gambleCollect(); else { card.className = 'gamble-card'; card.textContent = '?'; gambleRefresh(); } }, 1000);
-    } else {
-      balance -= gambleStake; totalPayoutsStat -= gambleStake; gambleStake = 0;
-      document.getElementById('winDisplay').innerText = '0.00 €';
-      document.getElementById('statusBanner').innerText = 'GAMBLE PERDIDO';
-      tone(180, .4, 'sawtooth', .05);
-      updateUI(); gambleRefresh();
-      setTimeout(() => { gambleBusy = false; closeModal('gamble-modal'); document.getElementById('statusBanner').innerText = 'PRESSIONE JOGAR PARA COMEÇAR'; }, 1300);
-    }
-  }
-  function gambleCollect() {
-    closeModal('gamble-modal'); gambleBusy = false;
-    document.getElementById('statusBanner').innerText = gambleStake > 0 ? 'RECOLHIDO ' + gambleStake.toFixed(2) + '€!' : 'PRESSIONE JOGAR PARA COMEÇAR';
-    updateUI();
-  }
-
 
   const COIN_VALUES = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00, 1.50, 2.00, 2.50];
 
@@ -1364,7 +1244,7 @@
   ];
 
   const PAY_DATA = [
-    { icon: '📖', name: 'Pirâmide', high: true, scatter: true, pays: {} },
+    { icon: '📖', name: 'Pirâmide', high: true, pays: { 5: 5000, 4: 1000, 3: 100, 2: 10 } },
     { icon: '👑', name: 'Rá', high: true, pays: { 5: 5000, 4: 1000, 3: 100, 2: 10 } },
     { icon: '🐺', name: 'Anúbis', high: true, pays: { 5: 1600, 4: 300, 3: 30, 2: 5 } },
     { icon: '🦅', name: 'Hórus', high: true, pays: { 5: 600, 4: 80, 3: 20, 2: 5 } },
@@ -1413,7 +1293,7 @@
   let inFreeSpins = false;
   let freeSpinsLeft = 0;
   let bonusTotalWinAccumulated = 0;
-  let expandingSymbols = [];
+  let expandingSymbol = '';
   let gridState = [[],[],[],[],[]];
 
   let autoSpinCount = 0;
@@ -1505,41 +1385,25 @@
     if (avail >= Math.max(10, 50 * bet))  tierMax = 20;           // prémio médio
     if (avail >= Math.max(40, 150 * bet)) tierMax = 100;          // prémio alto
     if (avail >= Math.max(100, 400 * bet)) tierMax = Infinity;    // prémio máximo
-    return Math.min(avail * VAULT_PAYOUT_FRACTION, tierMax * bet, MAX_WIN_MULT * bet);   // nunca mais de 5.000x o total apostado por giro
+    return Math.min(avail * VAULT_PAYOUT_FRACTION, tierMax * bet);
   }
   // Avalia uma grelha sem tocar no ecrã (mesma lógica de linhas e símbolo expansivo do jogo).
-  const SCATTER_PAYS = { 3: 2, 4: 20, 5: 200 };   // × total apostado, com 3 / 4 / 5 Pirâmides em qualquer posição
-  const MAX_WIN_MULT = 5000;                        // teto por giro: 5.000× o total apostado
-  const expMin = sym => ((PAY_DATA.find(p => p.icon === sym) || {}).high) ? 2 : 3;
-  function topPay(sym) { const p = PAY_DATA.find(x => x.icon === sym); return p && p.pays ? (p.pays[5] || 0) : 0; }
-  // Expansão nos Free Spins: cada símbolo expansivo (do mais valioso para o menos) expande nos tambores onde aparece; um tambor só expande uma vez.
-  function expansionPlan(grid) {
-    if (!inFreeSpins || !expandingSymbols.length) return [];
-    const taken = new Set(), plan = [];
-    expandingSymbols.slice().sort((a, b) => topPay(b) - topPay(a)).forEach(sym => {
-      const reels = [0, 1, 2, 3, 4].filter(r => !taken.has(r) && grid[r].includes(sym));
-      if (reels.length >= expMin(sym)) {
-        reels.forEach(r => taken.add(r));
-        const mult = PAY_DATA.find(p => p.icon === sym).pays[reels.length] || 0;
-        plan.push({ sym: sym, reels: reels, win: mult * getCoinValue() * getCoinsPerLine() * 10 });
-      }
-    });
-    return plan;
-  }
-  function scatterWinFor(count) { return count >= 3 ? SCATTER_PAYS[Math.min(5, count)] * getTotalBetCash() : 0; }
   function evalGrid(grid) {
     let win = 0;
     PAYLINES.forEach(line => {
       let target = null;
       for (let c = 0; c < 5; c++) { const s = grid[c][line[c]]; if (s !== '📖') { target = s; break; } }
-      if (!target) target = '👑';   // linha só com Pirâmides paga como o símbolo mais valioso
+      if (!target) target = '📖';
       let count = 0;
       for (let c = 0; c < 5; c++) { const s = grid[c][line[c]]; if (s === target || s === '📖') count++; else break; }
       const info = PAY_DATA.find(p => p.icon === target);
       if (info && info.pays[count]) win += info.pays[count] * getCoinValue() * getCoinsPerLine();
     });
-    win += scatterWinFor(grid.filter(r => r.includes('📖')).length);
-    expansionPlan(grid).forEach(e => { win += e.win; });
+    if (inFreeSpins && expandingSymbol) {
+      const n = grid.filter(r => r.includes(expandingSymbol)).length;
+      const info = PAY_DATA.find(p => p.icon === expandingSymbol);
+      if (n >= (info.high ? 2 : 3)) win += (info.pays[n] || 0) * getCoinValue() * getCoinsPerLine() * 10;
+    }
     return win;
   }
   // Gera a grelha da jogada: as Pirâmides (Scatter) ficam como sorteados; se o resultado pagar acima do teto do cofre, volta a sortear os restantes símbolos.
@@ -1567,12 +1431,12 @@
   }
   // Grelha garantidamente sem prémio: tambores vizinhos nunca partilham símbolos (e sem Pirâmides / sem símbolo expansivo)
   function noWinGrid() {
-    const pool = SYMBOLS.filter(s => s !== '📖').sort(() => Math.random() - 0.5);
-    if (inFreeSpins) return [0, 1, 2, 3, 4].map(r => [pool[r], pool[r], pool[r]]);   // cada símbolo em 1 só tambor: sem linhas nem expansões
+    const pool = SYMBOLS.filter(s => s !== '📖' && !(inFreeSpins && s === expandingSymbol)).sort(() => Math.random() - 0.5);
     const A = pool.slice(0, 3), B = pool.slice(3, 6);
     const shuf = a => a.slice().sort(() => Math.random() - 0.5);
     return [0, 1, 2, 3, 4].map(r => shuf(r % 2 === 0 ? A : B));
   }
+
   // ===== Prémios pequenos de consolação (sem desanimar o jogador, sempre dentro do teto do cofre) =====
   let dryStreak = 0;
   function consolationChance() {
@@ -1631,10 +1495,9 @@
   function bonusBuyScatterCount() {
     const vf = Math.min(1, Math.max(0, getVault()) / 500);
     const r = Math.random();
-    let n = r < 0.10 * vf ? 5 : (r < 0.35 * vf ? 4 : 3);
-    const bet = getTotalBetCash(), cap = maxAllowedWin(Math.max(0, getVault()), bet);
-    while (n > 3 && SCATTER_PAYS[n] * bet > cap + 1e-9) n--;   // o prémio do scatter tem de caber no cofre
-    return n;
+    if (r < 0.10 * vf) return 5;
+    if (r < 0.35 * vf) return 4;
+    return 3;
   }
   function planForcedGrid(rtp, n) {
     const bet = getTotalBetCash();
@@ -1685,12 +1548,11 @@
       const card = document.createElement('div');
       card.className = 'pay-card';
       let rowsHtml = '';
-      const paysSrc = p.scatter ? SCATTER_PAYS : p.pays;
-      Object.keys(paysSrc).sort((a, b) => b - a).forEach(count => {
-        const valEur = (p.scatter ? SCATTER_PAYS[count] * getTotalBetCash() : p.pays[count] * coinVal * coinsPerLine).toFixed(2).replace('.', ',');
+      Object.keys(p.pays).sort((a, b) => b - a).forEach(count => {
+        const valEur = (p.pays[count] * coinVal * coinsPerLine).toFixed(2).replace('.', ',');
         rowsHtml += `<div class="pay-row"><span>${count}x</span><span class="val-eur">${valEur} €</span></div>`;
       });
-      card.innerHTML = `<div class="pay-card-icon">${symHTML(p.icon)}</div><div class="pay-card-details"><div class="pay-card-title">${p.name}${p.scatter ? " (Scatter)" : ""}</div>${rowsHtml}</div>`;
+      card.innerHTML = `<div class="pay-card-icon">${symHTML(p.icon)}</div><div class="pay-card-details"><div class="pay-card-title">${p.name}</div>${rowsHtml}</div>`;
       container.appendChild(card);
     });
   }
@@ -1799,7 +1661,6 @@
     isSpinning = true;
     bonusBookCount = 0;
     disableBetControls(true);
-    hideGambleOffer();
     
     if (autoSpinActive) {
       const spinBtn = document.getElementById('spinBtn');
@@ -1810,7 +1671,7 @@
     }
 
     if (inFreeSpins) {
-      document.getElementById('statusBanner').innerText = (retriggerNote ? retriggerNote + ' · ' : '') + `FREE SPINS: ${freeSpinsLeft} RESTANTES`; retriggerNote = '';
+      document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
     } else {
       document.getElementById('statusBanner').innerText = "A RODAR...";
       document.getElementById('winDisplay').innerText = "0.00 €";
@@ -1898,28 +1759,31 @@
 
 
   function checkAndExpandSymbols() {
-    let total = 0;
-    expansionPlan(gridState).forEach(e => {
-      e.reels.forEach(r => {
-        document.getElementById(`strip-${r}`).querySelectorAll('.symbol').forEach(s => {
-          s.innerHTML = symHTML(e.sym); s.classList.add('expanded', 'winning');
+    if(!inFreeSpins || !expandingSymbol) return 0;
+    let reelsWithExp = [];
+    for(let r=0; r<5; r++) {
+      if(gridState[r].includes(expandingSymbol)) reelsWithExp.push(r);
+    }
+    const isHigh = PAY_DATA.find(p => p.icon === expandingSymbol)?.high;
+    const minNeeded = isHigh ? 2 : 3;
+
+    if(reelsWithExp.length >= minNeeded) {
+      reelsWithExp.forEach(r => {
+        const strip = document.getElementById(`strip-${r}`);
+        strip.querySelectorAll('.symbol').forEach(s => {
+          s.innerHTML = symHTML(expandingSymbol);
+          s.classList.add('expanded');
+          s.classList.add('winning');
         });
       });
-      total += e.win;
-    });
-    return total;
+      const mult = PAY_DATA.find(p => p.icon === expandingSymbol).pays[reelsWithExp.length] || 0;
+      return mult * getCoinValue() * getCoinsPerLine() * 10;
+    }
+    return 0;
   }
-  function refreshExpBanner() {
-    const n = expandingSymbols.length;
-    document.getElementById('expLabel').innerText = n > 1 ? 'EXPANSIVOS:' : 'SÍMBOLO EXPANSIVO:';
-    const h = n > 3 ? Math.max(34, Math.floor(300 / n)) : 76;
-    document.getElementById('expSymbolIcon').innerHTML = expandingSymbols.map(s => '<img src="' + IMG[s] + '" alt="" style="height:calc(var(--u) * ' + h + ')">').join('');
-    document.getElementById('expandingSymbolBanner').style.display = n ? 'block' : 'none';
-  }
-  let retriggerNote = '';
 
   function finishSpin(scatters) {
-    if (scatters >= 3 && !inFreeSpins) pendingFreeSpins = 8;
+    if (scatters >= 3 && !inFreeSpins) pendingFreeSpins = scatters === 3 ? 8 : (scatters === 4 ? 10 : 12);
     isSpinning = false;
     let baseWin = 0;
 
@@ -1927,42 +1791,58 @@
       let targetSym = null;
       for (let col = 0; col < 5; col++) {
         let sym = gridState[col][line[col]];
-        if (sym !== '📖') { targetSym = sym; break; }
+        if (sym !== '📖') {
+          targetSym = sym;
+          break;
+        }
       }
-      if (!targetSym) targetSym = '👑';
+      if (!targetSym) targetSym = '📖';
 
       let count = 0;
       let winningReelsIndices = [];
+
       for (let col = 0; col < 5; col++) {
         let sym = gridState[col][line[col]];
-        if (sym === targetSym || sym === '📖') { count++; winningReelsIndices.push(col); } else { break; }
+        if (sym === targetSym || sym === '📖') {
+          count++;
+          winningReelsIndices.push(col);
+        } else {
+          break;
+        }
       }
+
       const payInfo = PAY_DATA.find(p => p.icon === targetSym);
       if (payInfo && payInfo.pays[count]) {
         baseWin += payInfo.pays[count] * getCoinValue() * getCoinsPerLine();
+        
         winningReelsIndices.forEach(colIndex => {
-          const symbolDivs = document.getElementById(`strip-${colIndex}`).querySelectorAll('.symbol');
-          if (symbolDivs[line[colIndex]]) symbolDivs[line[colIndex]].classList.add('winning');
+          const rowIndex = line[colIndex];
+          const reelStrip = document.getElementById(`strip-${colIndex}`);
+          const symbolDivs = reelStrip.querySelectorAll('.symbol');
+          if (symbolDivs[rowIndex]) {
+            symbolDivs[rowIndex].classList.add('winning');
+          }
         });
       }
     });
 
-    const scatterWin = scatterWinFor(scatters);      // 3/4/5 Pirâmides pagam 2x / 20x / 200x o total apostado
-    const expandWin = checkAndExpandSymbols();
-    let totalSpinWin = baseWin + scatterWin + expandWin;
+    let expandWin = checkAndExpandSymbols();
+    let totalSpinWin = baseWin + expandWin;
 
-    // TETO MÁXIMO DO COFRE: NUNCA PAGA ACIMA DO COFRE DE PRÉMIOS
+    // TETO MÁXIMO DO COFRE: NUNCA PAGA ACIMA DO LUCRO RETIDO
     let currentVault = getVault();
     const alreadyReserved = inFreeSpins ? bonusTotalWinAccumulated : 0;
     const availableVault = Math.max(0, currentVault - alreadyReserved);
     const _rawWin = totalSpinWin;
-    if (totalSpinWin > availableVault) totalSpinWin = availableVault;
+    if (totalSpinWin > availableVault) {
+      totalSpinWin = availableVault;
+    }
     totalSpinWin = Math.min(totalSpinWin, maxAllowedWin(availableVault, getTotalBetCash()));
     if (totalSpinWin < _rawWin - 1e-9) spinCutEvents++;
 
-    if (scatters >= 3) {
+    if(scatters >= 3) {
       if (!inFreeSpins) {
-        // O prémio desta jogada (linhas + scatter) não pode desaparecer por activar o bónus.
+        // O prémio normal desta jogada não pode desaparecer por activar o bónus.
         if (totalSpinWin > 0) {
           const payable = Math.min(totalSpinWin, Math.max(0, getVault()));
           balance += payable;
@@ -1971,34 +1851,24 @@
           showWinPopup(payable);
         }
         if (autoSpinActive) autoSpinCount = Math.max(0, autoSpinCount - 1);
-        if (autoSpinActive && document.getElementById('chkAutoStopBonus').checked) stopAutoSpin();
         updateUI();
         // pausa de 4 s: dá para ver as Pirâmides, as linhas premiadas e o valor do prémio antes da escolha do símbolo expansivo
         bonusWaiting = true; isSpinning = true;
         document.getElementById('statusBanner').innerText = totalSpinWin > 0 ? 'BÓNUS ATIVADO! PRÉMIO ' + totalSpinWin.toFixed(2) + ' €' : 'BÓNUS ATIVADO!';
         setTimeout(() => { bonusWaiting = false; isSpinning = false; openBonusRoulette(); saveGame(); }, BONUS_REVEAL_MS);
       } else {
-        // Re-trigger: +8 spins e um novo símbolo expansivo (até 9); com os 9 ativos, +10 spins
-        const allExp = expandingSymbols.length >= 9;
-        const extraSpins = allExp ? 10 : 8;
+        const extraSpins = scatters === 3 ? 8 : (scatters === 4 ? 10 : 12);
         freeSpinsLeft += extraSpins;
-        retriggerNote = 'RE-TRIGGER! +' + extraSpins + ' SPINS';
-        if (!allExp) {
-          const cand = SYMBOLS.filter(s => s !== '📖' && !expandingSymbols.includes(s));
-          expandingSymbols.push(cand[Math.floor(Math.random() * cand.length)]);
-          refreshExpBanner();
-          retriggerNote += ' E NOVO SÍMBOLO!';
-          tone(784, .2, 'triangle', .06); tone(1047, .4, 'triangle', .06, .12);
-        }
+        document.getElementById('statusBanner').innerText = `RE-TRIGGER! +${extraSpins} SPINS!`;
         processFreeSpinStep(totalSpinWin);
       }
       return;
     }
 
-    if (inFreeSpins) {
+    if(inFreeSpins) {
       processFreeSpinStep(totalSpinWin);
     } else {
-      if (totalSpinWin > 0) {
+      if(totalSpinWin > 0) {
         balance += totalSpinWin;
         totalPayoutsStat += totalSpinWin;
       }
@@ -2015,15 +1885,11 @@
 
       if (autoSpinActive) {
         autoSpinCount--;
-        const winLim = parseFloat(document.getElementById('inputAutoWinLimit').value) || 0;
-        const balLim = parseFloat(document.getElementById('inputAutoBalLimit').value) || 0;
-        if (autoSpinCount <= 0 || (winLim > 0 && totalSpinWin >= winLim) || (balLim > 0 && balance < balLim)) {
+        if (autoSpinCount <= 0) {
           stopAutoSpin();
         } else {
           setTimeout(() => triggerSpin(), isTurbo ? 400 : 800);
         }
-      } else if (totalSpinWin > 0 && GAMBLE_ENABLED) {
-        offerGamble(totalSpinWin);
       }
     }
   }
@@ -2074,7 +1940,7 @@
     function step() {
       const el = performance.now() - t0;
       if (el >= TOTAL) {
-        rouletteTimer = null; expandingSymbols = [chosen];
+        rouletteTimer = null; expandingSymbol = chosen;
         display.innerHTML = symHTML(chosen); display.classList.add('picked');
         msg.innerText = 'Parabéns, tem ' + pendingFreeSpins + ' spins grátis e o seu símbolo expansível é:';
         tone(784, .25, 'triangle', .06); tone(1047, .45, 'triangle', .06, .12);
@@ -2096,7 +1962,8 @@
     bonusTotalWinAccumulated = 0;
     pendingExpandChoice = null;
     
-    refreshExpBanner();
+    document.getElementById('expSymbolIcon').innerHTML = symHTML(expandingSymbol);
+    document.getElementById('expandingSymbolBanner').style.display = 'block';
     
     setTimeout(() => triggerSpin(true), 400);
   }
@@ -2105,8 +1972,8 @@
     bonusClosePending = false;
     closeModal('bonus-celebration-modal');
     inFreeSpins = false;
-    expandingSymbols = [];
-    refreshExpBanner();
+    expandingSymbol = '';
+    document.getElementById('expandingSymbolBanner').style.display = 'none';
     disableBetControls(false);
     
     const spinBtn = document.getElementById('spinBtn');
@@ -2330,7 +2197,7 @@
     const extra = vault >= VAULT_MIN_FOR_BOOKS ? (t / 100) * 0.95 * (tb / 100) * vf : 0;
     return `<br>• Volatilidade <b>${v.n}</b>: peso dos símbolos altos ${v.hi}, ajuda de prémios pequenos ×${v.cons}, ${Math.round(v.rr * 100)}% dos prémios pequenos refeitos.` +
       `<br>• Teases: ${t}% das jogadas; ${tb}% viram bónus se o cofre permitir → bónus extra ${extra > 0 ? '≈ 1 em ' + Math.round(1 / extra) + ' jogadas (agora)' : 'inativo (cofre abaixo de ' + VAULT_MIN_FOR_BOOKS + ' €)'}.` +
-      `<br>• Compra de bónus: 3 Pirâmides garantidas; 4 com ${(25 * bf).toFixed(0)}% e 5 com ${(10 * bf).toFixed(0)}% (sobe com o cofre até 500 €); 8 Free Spins.`;
+      `<br>• Compra de bónus: 3 Pirâmides garantidas; 4 com ${(25 * bf).toFixed(0)}% e 5 com ${(10 * bf).toFixed(0)}% (sobe com o cofre até 500 €); 8 / 10 / 12 Free Spins.`;
   }
 
   // ===== Cofre de prémios: depósitos do técnico e históricos exportáveis =====
@@ -2437,7 +2304,7 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
-  const GAME_VERSION = 'v1.51';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  const GAME_VERSION = 'v1.50';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
   document.getElementById('gameVersion').textContent = GAME_VERSION;
   restoreGame();
   saveBlocked = false; saveGame();
