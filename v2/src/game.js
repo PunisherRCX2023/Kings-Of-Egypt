@@ -203,7 +203,7 @@
 
   // ===== Guardar e restaurar o jogo (fica guardado no navegador, mesmo que o jogo seja desligado) =====
   const SAVE_KEY = 'kingsOfEgypt.save';
-  const SAVE_INPUTS = ['inputRtp', 'inputVolatility', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease', 'inputTeaseBonus', 'inputCoinValueIndex', 'inputCoinsPerLine'];
+  const SAVE_INPUTS = ['inputRtp', 'inputVolatility', 'inputBonusProb', 'inputRetriggerProb', 'inputSmallWin', 'inputReserve', 'inputTease', 'inputTeaseBonus', 'inputCoinValueIndex', 'inputCoinsPerLine', 'inputAutoWinLimit', 'inputAutoBalLimit'];
   let saveBlocked = true;          // só passa a false depois de restaurar (evita gravar o estado inicial por cima do guardado)
   let pendingSpin = null;          // giro em curso: a grelha já decidida fica guardada, para o resultado nunca se perder
   let pendingExpandChoice = null;  // símbolo expansivo já sorteado
@@ -212,13 +212,14 @@
   const logIn = a => (a || []).map(x => ({ t: new Date(x.t), v: Number(x.v) || 0 }));
   function gameSnapshot() {
     const inputs = {}; SAVE_INPUTS.forEach(id => { const el = document.getElementById(id); if (el) inputs[id] = el.value; });
+    const checks = { chkAutoStopBonus: document.getElementById('chkAutoStopBonus').checked };
     return {
       v: 1, savedAt: Date.now(), version: (typeof GAME_VERSION !== 'undefined' ? GAME_VERSION : ''),
       balance, totalBetStat, totalPayoutsStat, totalDepStat, totalWithStat, vaultTopUps, dryStreak,
       depositsHistory, withdrawalsHistory, depositsLog: logOut(depositsLog), withdrawalsLog: logOut(withdrawalsLog), vaultTopUpLog: logOut(vaultTopUpLog),
       adminPassword, depositPassword, withdrawPassword, collabPercentage, isTurbo, soundEnabled, selectedAutoSpinsOption,
-      inputs, grid: gridState,
-      bonus: { inFreeSpins, freeSpinsLeft, bonusTotalWinAccumulated, expandingSymbol, pendingFreeSpins, pendingExpandChoice,
+      inputs, checks, grid: gridState,
+      bonus: { inFreeSpins, freeSpinsLeft, bonusTotalWinAccumulated, expandingSymbols, pendingFreeSpins, pendingExpandChoice,
         roulette: bonusWaiting || document.getElementById('bonus-roulette-modal').classList.contains('active'), celebration: bonusClosePending },
       pendingSpin
     };
@@ -254,6 +255,7 @@
     selectedAutoSpinsOption = num(s.selectedAutoSpinsOption, 10);
     // definições (sliders) -> dispara o evento "input" para atualizar também os textos de cada slider
     Object.keys(s.inputs || {}).forEach(id => { const el = document.getElementById(id); if (el) { el.value = s.inputs[id]; el.dispatchEvent(new Event('input')); } });
+    if (s.checks && typeof s.checks.chkAutoStopBonus === 'boolean') document.getElementById('chkAutoStopBonus').checked = s.checks.chkAutoStopBonus;
     updateCollabCommission(num(s.collabPercentage, 20));
     if (s.isTurbo && !isTurbo) toggleTurbo();
     if (s.soundEnabled === false && soundEnabled) toggleSound();
@@ -261,8 +263,8 @@
     const b = s.bonus || {};
     pendingFreeSpins = num(b.pendingFreeSpins, 8); pendingExpandChoice = b.pendingExpandChoice || null;
     if (b.inFreeSpins) {
-      inFreeSpins = true; freeSpinsLeft = num(b.freeSpinsLeft, 0); bonusTotalWinAccumulated = num(b.bonusTotalWinAccumulated, 0); expandingSymbol = b.expandingSymbol || '';
-      if (expandingSymbol) { document.getElementById('expSymbolIcon').innerHTML = symHTML(expandingSymbol); document.getElementById('expandingSymbolBanner').style.display = 'block'; }
+      inFreeSpins = true; freeSpinsLeft = num(b.freeSpinsLeft, 0); bonusTotalWinAccumulated = num(b.bonusTotalWinAccumulated, 0); expandingSymbols = Array.isArray(b.expandingSymbols) ? b.expandingSymbols.filter(s => IMG[s]) : (b.expandingSymbol ? [b.expandingSymbol] : []);
+      refreshExpBanner();
       disableBetControls(true); document.getElementById('spinBtn').classList.add('disabled');
       document.getElementById('statusBanner').innerText = 'FREE SPINS: ' + freeSpinsLeft + ' RESTANTES';
       document.getElementById('winDisplay').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
@@ -314,6 +316,71 @@
     location.reload();
   }
 
+  // ===== Gamble opcional (como no Legacy of Dead): cor x2 ou naipe x4, até 5 vezes seguidas =====
+  const GAMBLE_ENABLED = (typeof window.__spinMs !== 'number');
+  const GAMBLE_MAX_TIMES = 5;
+  let gambleStake = 0, gambleTimes = 0, gambleBusy = false, gambleHist = [];
+  function gambleOk(m) {   // só deixa apostar se o cofre de prémios cobrir o ganho e o valor não passar 500x o total apostado
+    return gambleTimes < GAMBLE_MAX_TIMES && gambleStake * m <= 500 * getTotalBetCash() && getVault() >= gambleStake * (m - 1) - 1e-9;
+  }
+  function gambleRefresh() {
+    document.getElementById('gambleStake').innerText = gambleStake.toFixed(2) + ' €';
+    const o2 = gambleOk(2), o4 = gambleOk(4);
+    document.querySelectorAll('#gamble-modal .g-color').forEach(b => { b.disabled = gambleBusy || !o2; });
+    document.querySelectorAll('#gamble-modal .g-suit').forEach(b => { b.disabled = gambleBusy || !o4; });
+    document.getElementById('gambleInfoLine').innerText = (o2 || o4)
+      ? 'Cor: ' + (gambleStake * 2).toFixed(2) + ' €  ·  Naipe: ' + (gambleStake * 4).toFixed(2) + ' €  ·  ainda ' + (GAMBLE_MAX_TIMES - gambleTimes) + ' vez(es)'
+      : 'Não é possível apostar mais: recolhe o prémio.';
+    document.getElementById('gambleHistory').innerHTML = gambleHist.slice(0, 5).map(h => '<span class="gh ' + h.color + '">' + h.suit + '</span>').join('');
+  }
+  // Depois de um prémio aparece o botão GAMBLE durante alguns segundos (é opcional; ao jogar de novo desaparece)
+  let gambleOffer = 0, gambleOfferTimer = null;
+  function hideGambleOffer() { gambleOffer = 0; clearTimeout(gambleOfferTimer); const b = document.getElementById('gambleOfferBtn'); if (b) b.style.display = 'none'; }
+  function offerGamble(win) {
+    if (!GAMBLE_ENABLED || win <= 0) return;
+    gambleOffer = win; document.getElementById('gambleOfferBtn').style.display = 'block';
+    clearTimeout(gambleOfferTimer); gambleOfferTimer = setTimeout(hideGambleOffer, 8000);
+  }
+  function openGamble(win) {
+    if (!GAMBLE_ENABLED || isSpinning || inFreeSpins || autoSpinActive || win <= 0) return;
+    hideGambleOffer();
+    gambleStake = win; gambleTimes = 0; gambleBusy = false; gambleHist = [];
+    const card = document.getElementById('gambleCard'); card.className = 'gamble-card'; card.textContent = '?';
+    gambleRefresh();
+    document.getElementById('gamble-modal').classList.add('active');
+  }
+  function gamblePick(choice) {
+    if (gambleBusy) return;
+    const isColor = choice === 'red' || choice === 'black', m = isColor ? 2 : 4;
+    if (!gambleOk(m)) return;
+    gambleBusy = true;
+    const suit = ['♥', '♦', '♣', '♠'][Math.floor(Math.random() * 4)];
+    const color = (suit === '♥' || suit === '♦') ? 'red' : 'black';
+    const won = isColor ? (choice === color) : (choice === suit);
+    const card = document.getElementById('gambleCard'); card.className = 'gamble-card flip ' + color; card.textContent = suit;
+    gambleHist.unshift({ suit: suit, color: color });
+    if (won) {
+      const extra = gambleStake * (m - 1);
+      balance += extra; totalPayoutsStat += extra; gambleStake += extra; gambleTimes++;
+      document.getElementById('winDisplay').innerText = gambleStake.toFixed(2) + ' €';
+      tone(784, .15, 'triangle', .06); tone(1047, .3, 'triangle', .06, .1);
+      updateUI(); gambleRefresh(); showWinPopup(gambleStake);
+      setTimeout(() => { gambleBusy = false; if (!gambleOk(2) && !gambleOk(4)) gambleCollect(); else { card.className = 'gamble-card'; card.textContent = '?'; gambleRefresh(); } }, 1000);
+    } else {
+      balance -= gambleStake; totalPayoutsStat -= gambleStake; gambleStake = 0;
+      document.getElementById('winDisplay').innerText = '0.00 €';
+      document.getElementById('statusBanner').innerText = 'GAMBLE PERDIDO';
+      tone(180, .4, 'sawtooth', .05);
+      updateUI(); gambleRefresh();
+      setTimeout(() => { gambleBusy = false; closeModal('gamble-modal'); document.getElementById('statusBanner').innerText = 'PRESSIONE JOGAR PARA COMEÇAR'; }, 1300);
+    }
+  }
+  function gambleCollect() {
+    closeModal('gamble-modal'); gambleBusy = false;
+    document.getElementById('statusBanner').innerText = gambleStake > 0 ? 'RECOLHIDO ' + gambleStake.toFixed(2) + '€!' : 'PRESSIONE JOGAR PARA COMEÇAR';
+    updateUI();
+  }
+
 
   const COIN_VALUES = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00, 1.50, 2.00, 2.50];
 
@@ -323,7 +390,7 @@
   ];
 
   const PAY_DATA = [
-    { icon: '📖', name: 'Pirâmide', high: true, pays: { 5: 5000, 4: 1000, 3: 100, 2: 10 } },
+    { icon: '📖', name: 'Pirâmide', high: true, scatter: true, pays: {} },
     { icon: '👑', name: 'Rá', high: true, pays: { 5: 5000, 4: 1000, 3: 100, 2: 10 } },
     { icon: '🐺', name: 'Anúbis', high: true, pays: { 5: 1600, 4: 300, 3: 30, 2: 5 } },
     { icon: '🦅', name: 'Hórus', high: true, pays: { 5: 600, 4: 80, 3: 20, 2: 5 } },
@@ -372,7 +439,7 @@
   let inFreeSpins = false;
   let freeSpinsLeft = 0;
   let bonusTotalWinAccumulated = 0;
-  let expandingSymbol = '';
+  let expandingSymbols = [];
   let gridState = [[],[],[],[],[]];
 
   let autoSpinCount = 0;
@@ -464,25 +531,41 @@
     if (avail >= Math.max(10, 50 * bet))  tierMax = 20;           // prémio médio
     if (avail >= Math.max(40, 150 * bet)) tierMax = 100;          // prémio alto
     if (avail >= Math.max(100, 400 * bet)) tierMax = Infinity;    // prémio máximo
-    return Math.min(avail * VAULT_PAYOUT_FRACTION, tierMax * bet);
+    return Math.min(avail * VAULT_PAYOUT_FRACTION, tierMax * bet, MAX_WIN_MULT * bet);   // nunca mais de 5.000x o total apostado por giro
   }
   // Avalia uma grelha sem tocar no ecrã (mesma lógica de linhas e símbolo expansivo do jogo).
+  const SCATTER_PAYS = { 3: 2, 4: 20, 5: 200 };   // × total apostado, com 3 / 4 / 5 Pirâmides em qualquer posição
+  const MAX_WIN_MULT = 5000;                        // teto por giro: 5.000× o total apostado
+  const expMin = sym => ((PAY_DATA.find(p => p.icon === sym) || {}).high) ? 2 : 3;
+  function topPay(sym) { const p = PAY_DATA.find(x => x.icon === sym); return p && p.pays ? (p.pays[5] || 0) : 0; }
+  // Expansão nos Free Spins: cada símbolo expansivo (do mais valioso para o menos) expande nos tambores onde aparece; um tambor só expande uma vez.
+  function expansionPlan(grid) {
+    if (!inFreeSpins || !expandingSymbols.length) return [];
+    const taken = new Set(), plan = [];
+    expandingSymbols.slice().sort((a, b) => topPay(b) - topPay(a)).forEach(sym => {
+      const reels = [0, 1, 2, 3, 4].filter(r => !taken.has(r) && grid[r].includes(sym));
+      if (reels.length >= expMin(sym)) {
+        reels.forEach(r => taken.add(r));
+        const mult = PAY_DATA.find(p => p.icon === sym).pays[reels.length] || 0;
+        plan.push({ sym: sym, reels: reels, win: mult * getCoinValue() * getCoinsPerLine() * 10 });
+      }
+    });
+    return plan;
+  }
+  function scatterWinFor(count) { return count >= 3 ? SCATTER_PAYS[Math.min(5, count)] * getTotalBetCash() : 0; }
   function evalGrid(grid) {
     let win = 0;
     PAYLINES.forEach(line => {
       let target = null;
       for (let c = 0; c < 5; c++) { const s = grid[c][line[c]]; if (s !== '📖') { target = s; break; } }
-      if (!target) target = '📖';
+      if (!target) target = '👑';   // linha só com Pirâmides paga como o símbolo mais valioso
       let count = 0;
       for (let c = 0; c < 5; c++) { const s = grid[c][line[c]]; if (s === target || s === '📖') count++; else break; }
       const info = PAY_DATA.find(p => p.icon === target);
       if (info && info.pays[count]) win += info.pays[count] * getCoinValue() * getCoinsPerLine();
     });
-    if (inFreeSpins && expandingSymbol) {
-      const n = grid.filter(r => r.includes(expandingSymbol)).length;
-      const info = PAY_DATA.find(p => p.icon === expandingSymbol);
-      if (n >= (info.high ? 2 : 3)) win += (info.pays[n] || 0) * getCoinValue() * getCoinsPerLine() * 10;
-    }
+    win += scatterWinFor(grid.filter(r => r.includes('📖')).length);
+    expansionPlan(grid).forEach(e => { win += e.win; });
     return win;
   }
   // Gera a grelha da jogada: as Pirâmides (Scatter) ficam como sorteados; se o resultado pagar acima do teto do cofre, volta a sortear os restantes símbolos.
@@ -510,12 +593,12 @@
   }
   // Grelha garantidamente sem prémio: tambores vizinhos nunca partilham símbolos (e sem Pirâmides / sem símbolo expansivo)
   function noWinGrid() {
-    const pool = SYMBOLS.filter(s => s !== '📖' && !(inFreeSpins && s === expandingSymbol)).sort(() => Math.random() - 0.5);
+    const pool = SYMBOLS.filter(s => s !== '📖').sort(() => Math.random() - 0.5);
+    if (inFreeSpins) return [0, 1, 2, 3, 4].map(r => [pool[r], pool[r], pool[r]]);   // cada símbolo em 1 só tambor: sem linhas nem expansões
     const A = pool.slice(0, 3), B = pool.slice(3, 6);
     const shuf = a => a.slice().sort(() => Math.random() - 0.5);
     return [0, 1, 2, 3, 4].map(r => shuf(r % 2 === 0 ? A : B));
   }
-
   // ===== Prémios pequenos de consolação (sem desanimar o jogador, sempre dentro do teto do cofre) =====
   let dryStreak = 0;
   function consolationChance() {
@@ -574,9 +657,10 @@
   function bonusBuyScatterCount() {
     const vf = Math.min(1, Math.max(0, getVault()) / 500);
     const r = Math.random();
-    if (r < 0.10 * vf) return 5;
-    if (r < 0.35 * vf) return 4;
-    return 3;
+    let n = r < 0.10 * vf ? 5 : (r < 0.35 * vf ? 4 : 3);
+    const bet = getTotalBetCash(), cap = maxAllowedWin(Math.max(0, getVault()), bet);
+    while (n > 3 && SCATTER_PAYS[n] * bet > cap + 1e-9) n--;   // o prémio do scatter tem de caber no cofre
+    return n;
   }
   function planForcedGrid(rtp, n) {
     const bet = getTotalBetCash();
@@ -627,11 +711,12 @@
       const card = document.createElement('div');
       card.className = 'pay-card';
       let rowsHtml = '';
-      Object.keys(p.pays).sort((a, b) => b - a).forEach(count => {
-        const valEur = (p.pays[count] * coinVal * coinsPerLine).toFixed(2).replace('.', ',');
+      const paysSrc = p.scatter ? SCATTER_PAYS : p.pays;
+      Object.keys(paysSrc).sort((a, b) => b - a).forEach(count => {
+        const valEur = (p.scatter ? SCATTER_PAYS[count] * getTotalBetCash() : p.pays[count] * coinVal * coinsPerLine).toFixed(2).replace('.', ',');
         rowsHtml += `<div class="pay-row"><span>${count}x</span><span class="val-eur">${valEur} €</span></div>`;
       });
-      card.innerHTML = `<div class="pay-card-icon">${symHTML(p.icon)}</div><div class="pay-card-details"><div class="pay-card-title">${p.name}</div>${rowsHtml}</div>`;
+      card.innerHTML = `<div class="pay-card-icon">${symHTML(p.icon)}</div><div class="pay-card-details"><div class="pay-card-title">${p.name}${p.scatter ? " (Scatter)" : ""}</div>${rowsHtml}</div>`;
       container.appendChild(card);
     });
   }
@@ -740,6 +825,7 @@
     isSpinning = true;
     bonusBookCount = 0;
     disableBetControls(true);
+    hideGambleOffer();
     
     if (autoSpinActive) {
       const spinBtn = document.getElementById('spinBtn');
@@ -750,7 +836,7 @@
     }
 
     if (inFreeSpins) {
-      document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
+      document.getElementById('statusBanner').innerText = (retriggerNote ? retriggerNote + ' · ' : '') + `FREE SPINS: ${freeSpinsLeft} RESTANTES`; retriggerNote = '';
     } else {
       document.getElementById('statusBanner').innerText = "A RODAR...";
       document.getElementById('winDisplay').innerText = "0.00 €";
@@ -838,31 +924,28 @@
 
 
   function checkAndExpandSymbols() {
-    if(!inFreeSpins || !expandingSymbol) return 0;
-    let reelsWithExp = [];
-    for(let r=0; r<5; r++) {
-      if(gridState[r].includes(expandingSymbol)) reelsWithExp.push(r);
-    }
-    const isHigh = PAY_DATA.find(p => p.icon === expandingSymbol)?.high;
-    const minNeeded = isHigh ? 2 : 3;
-
-    if(reelsWithExp.length >= minNeeded) {
-      reelsWithExp.forEach(r => {
-        const strip = document.getElementById(`strip-${r}`);
-        strip.querySelectorAll('.symbol').forEach(s => {
-          s.innerHTML = symHTML(expandingSymbol);
-          s.classList.add('expanded');
-          s.classList.add('winning');
+    let total = 0;
+    expansionPlan(gridState).forEach(e => {
+      e.reels.forEach(r => {
+        document.getElementById(`strip-${r}`).querySelectorAll('.symbol').forEach(s => {
+          s.innerHTML = symHTML(e.sym); s.classList.add('expanded', 'winning');
         });
       });
-      const mult = PAY_DATA.find(p => p.icon === expandingSymbol).pays[reelsWithExp.length] || 0;
-      return mult * getCoinValue() * getCoinsPerLine() * 10;
-    }
-    return 0;
+      total += e.win;
+    });
+    return total;
   }
+  function refreshExpBanner() {
+    const n = expandingSymbols.length;
+    document.getElementById('expLabel').innerText = n > 1 ? 'EXPANSIVOS:' : 'SÍMBOLO EXPANSIVO:';
+    const h = n > 3 ? Math.max(34, Math.floor(300 / n)) : 76;
+    document.getElementById('expSymbolIcon').innerHTML = expandingSymbols.map(s => '<img src="' + IMG[s] + '" alt="" style="height:calc(var(--u) * ' + h + ')">').join('');
+    document.getElementById('expandingSymbolBanner').style.display = n ? 'block' : 'none';
+  }
+  let retriggerNote = '';
 
   function finishSpin(scatters) {
-    if (scatters >= 3 && !inFreeSpins) pendingFreeSpins = scatters === 3 ? 8 : (scatters === 4 ? 10 : 12);
+    if (scatters >= 3 && !inFreeSpins) pendingFreeSpins = 8;
     isSpinning = false;
     let baseWin = 0;
 
@@ -870,58 +953,42 @@
       let targetSym = null;
       for (let col = 0; col < 5; col++) {
         let sym = gridState[col][line[col]];
-        if (sym !== '📖') {
-          targetSym = sym;
-          break;
-        }
+        if (sym !== '📖') { targetSym = sym; break; }
       }
-      if (!targetSym) targetSym = '📖';
+      if (!targetSym) targetSym = '👑';
 
       let count = 0;
       let winningReelsIndices = [];
-
       for (let col = 0; col < 5; col++) {
         let sym = gridState[col][line[col]];
-        if (sym === targetSym || sym === '📖') {
-          count++;
-          winningReelsIndices.push(col);
-        } else {
-          break;
-        }
+        if (sym === targetSym || sym === '📖') { count++; winningReelsIndices.push(col); } else { break; }
       }
-
       const payInfo = PAY_DATA.find(p => p.icon === targetSym);
       if (payInfo && payInfo.pays[count]) {
         baseWin += payInfo.pays[count] * getCoinValue() * getCoinsPerLine();
-        
         winningReelsIndices.forEach(colIndex => {
-          const rowIndex = line[colIndex];
-          const reelStrip = document.getElementById(`strip-${colIndex}`);
-          const symbolDivs = reelStrip.querySelectorAll('.symbol');
-          if (symbolDivs[rowIndex]) {
-            symbolDivs[rowIndex].classList.add('winning');
-          }
+          const symbolDivs = document.getElementById(`strip-${colIndex}`).querySelectorAll('.symbol');
+          if (symbolDivs[line[colIndex]]) symbolDivs[line[colIndex]].classList.add('winning');
         });
       }
     });
 
-    let expandWin = checkAndExpandSymbols();
-    let totalSpinWin = baseWin + expandWin;
+    const scatterWin = scatterWinFor(scatters);      // 3/4/5 Pirâmides pagam 2x / 20x / 200x o total apostado
+    const expandWin = checkAndExpandSymbols();
+    let totalSpinWin = baseWin + scatterWin + expandWin;
 
-    // TETO MÁXIMO DO COFRE: NUNCA PAGA ACIMA DO LUCRO RETIDO
+    // TETO MÁXIMO DO COFRE: NUNCA PAGA ACIMA DO COFRE DE PRÉMIOS
     let currentVault = getVault();
     const alreadyReserved = inFreeSpins ? bonusTotalWinAccumulated : 0;
     const availableVault = Math.max(0, currentVault - alreadyReserved);
     const _rawWin = totalSpinWin;
-    if (totalSpinWin > availableVault) {
-      totalSpinWin = availableVault;
-    }
+    if (totalSpinWin > availableVault) totalSpinWin = availableVault;
     totalSpinWin = Math.min(totalSpinWin, maxAllowedWin(availableVault, getTotalBetCash()));
     if (totalSpinWin < _rawWin - 1e-9) spinCutEvents++;
 
-    if(scatters >= 3) {
+    if (scatters >= 3) {
       if (!inFreeSpins) {
-        // O prémio normal desta jogada não pode desaparecer por activar o bónus.
+        // O prémio desta jogada (linhas + scatter) não pode desaparecer por activar o bónus.
         if (totalSpinWin > 0) {
           const payable = Math.min(totalSpinWin, Math.max(0, getVault()));
           balance += payable;
@@ -930,24 +997,34 @@
           showWinPopup(payable);
         }
         if (autoSpinActive) autoSpinCount = Math.max(0, autoSpinCount - 1);
+        if (autoSpinActive && document.getElementById('chkAutoStopBonus').checked) stopAutoSpin();
         updateUI();
         // pausa de 4 s: dá para ver as Pirâmides, as linhas premiadas e o valor do prémio antes da escolha do símbolo expansivo
         bonusWaiting = true; isSpinning = true;
         document.getElementById('statusBanner').innerText = totalSpinWin > 0 ? 'BÓNUS ATIVADO! PRÉMIO ' + totalSpinWin.toFixed(2) + ' €' : 'BÓNUS ATIVADO!';
         setTimeout(() => { bonusWaiting = false; isSpinning = false; openBonusRoulette(); saveGame(); }, BONUS_REVEAL_MS);
       } else {
-        const extraSpins = scatters === 3 ? 8 : (scatters === 4 ? 10 : 12);
+        // Re-trigger: +8 spins e um novo símbolo expansivo (até 9); com os 9 ativos, +10 spins
+        const allExp = expandingSymbols.length >= 9;
+        const extraSpins = allExp ? 10 : 8;
         freeSpinsLeft += extraSpins;
-        document.getElementById('statusBanner').innerText = `RE-TRIGGER! +${extraSpins} SPINS!`;
+        retriggerNote = 'RE-TRIGGER! +' + extraSpins + ' SPINS';
+        if (!allExp) {
+          const cand = SYMBOLS.filter(s => s !== '📖' && !expandingSymbols.includes(s));
+          expandingSymbols.push(cand[Math.floor(Math.random() * cand.length)]);
+          refreshExpBanner();
+          retriggerNote += ' E NOVO SÍMBOLO!';
+          tone(784, .2, 'triangle', .06); tone(1047, .4, 'triangle', .06, .12);
+        }
         processFreeSpinStep(totalSpinWin);
       }
       return;
     }
 
-    if(inFreeSpins) {
+    if (inFreeSpins) {
       processFreeSpinStep(totalSpinWin);
     } else {
-      if(totalSpinWin > 0) {
+      if (totalSpinWin > 0) {
         balance += totalSpinWin;
         totalPayoutsStat += totalSpinWin;
       }
@@ -964,11 +1041,15 @@
 
       if (autoSpinActive) {
         autoSpinCount--;
-        if (autoSpinCount <= 0) {
+        const winLim = parseFloat(document.getElementById('inputAutoWinLimit').value) || 0;
+        const balLim = parseFloat(document.getElementById('inputAutoBalLimit').value) || 0;
+        if (autoSpinCount <= 0 || (winLim > 0 && totalSpinWin >= winLim) || (balLim > 0 && balance < balLim)) {
           stopAutoSpin();
         } else {
           setTimeout(() => triggerSpin(), isTurbo ? 400 : 800);
         }
+      } else if (totalSpinWin > 0 && GAMBLE_ENABLED) {
+        offerGamble(totalSpinWin);
       }
     }
   }
@@ -1019,7 +1100,7 @@
     function step() {
       const el = performance.now() - t0;
       if (el >= TOTAL) {
-        rouletteTimer = null; expandingSymbol = chosen;
+        rouletteTimer = null; expandingSymbols = [chosen];
         display.innerHTML = symHTML(chosen); display.classList.add('picked');
         msg.innerText = 'Parabéns, tem ' + pendingFreeSpins + ' spins grátis e o seu símbolo expansível é:';
         tone(784, .25, 'triangle', .06); tone(1047, .45, 'triangle', .06, .12);
@@ -1041,8 +1122,7 @@
     bonusTotalWinAccumulated = 0;
     pendingExpandChoice = null;
     
-    document.getElementById('expSymbolIcon').innerHTML = symHTML(expandingSymbol);
-    document.getElementById('expandingSymbolBanner').style.display = 'block';
+    refreshExpBanner();
     
     setTimeout(() => triggerSpin(true), 400);
   }
@@ -1051,8 +1131,8 @@
     bonusClosePending = false;
     closeModal('bonus-celebration-modal');
     inFreeSpins = false;
-    expandingSymbol = '';
-    document.getElementById('expandingSymbolBanner').style.display = 'none';
+    expandingSymbols = [];
+    refreshExpBanner();
     disableBetControls(false);
     
     const spinBtn = document.getElementById('spinBtn');
@@ -1276,7 +1356,7 @@
     const extra = vault >= VAULT_MIN_FOR_BOOKS ? (t / 100) * 0.95 * (tb / 100) * vf : 0;
     return `<br>• Volatilidade <b>${v.n}</b>: peso dos símbolos altos ${v.hi}, ajuda de prémios pequenos ×${v.cons}, ${Math.round(v.rr * 100)}% dos prémios pequenos refeitos.` +
       `<br>• Teases: ${t}% das jogadas; ${tb}% viram bónus se o cofre permitir → bónus extra ${extra > 0 ? '≈ 1 em ' + Math.round(1 / extra) + ' jogadas (agora)' : 'inativo (cofre abaixo de ' + VAULT_MIN_FOR_BOOKS + ' €)'}.` +
-      `<br>• Compra de bónus: 3 Pirâmides garantidas; 4 com ${(25 * bf).toFixed(0)}% e 5 com ${(10 * bf).toFixed(0)}% (sobe com o cofre até 500 €); 8 / 10 / 12 Free Spins.`;
+      `<br>• Compra de bónus: 3 Pirâmides garantidas; 4 com ${(25 * bf).toFixed(0)}% e 5 com ${(10 * bf).toFixed(0)}% (sobe com o cofre até 500 €); 8 Free Spins.`;
   }
 
   // ===== Cofre de prémios: depósitos do técnico e históricos exportáveis =====
@@ -1383,7 +1463,7 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
-  const GAME_VERSION = 'v1.50';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  const GAME_VERSION = 'v1.51';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
   document.getElementById('gameVersion').textContent = GAME_VERSION;
   restoreGame();
   saveBlocked = false; saveGame();

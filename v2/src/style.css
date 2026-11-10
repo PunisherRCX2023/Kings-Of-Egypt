@@ -536,3 +536,25 @@
     .cofre-hist .cbox .history-box { font-size: 11px; color: #ddd; max-height: 120px; overflow: auto; }
     .cofre-hist .btn-action { margin-top: 4px; padding: 8px 6px; font-size: 11px; }
     .vault-dep { margin-top: 8px; }
+
+    /* ===== v1.51: gamble, limites do auto-spin, símbolos expansivos múltiplos ===== */
+    .expanding-banner .icon { width: auto; display: inline-flex; align-items: center; gap: calc(var(--u) * 6); }
+    .expanding-banner .icon img { width: auto; height: calc(var(--u) * 76); }
+    .gamble-card { width: 92px; height: 130px; margin: 10px auto; border-radius: 10px; border: 3px solid #d9a940; display: flex; align-items: center; justify-content: center; font-size: 58px; font-weight: 900; color: #ffe9b0;
+      background: repeating-linear-gradient(45deg, #3b1a0e, #3b1a0e 8px, #5a2a14 8px, #5a2a14 16px); box-shadow: 0 6px 18px rgba(0,0,0,.6); }
+    .gamble-card.red { background: #fff; color: #c62828; } .gamble-card.black { background: #fff; color: #111; }
+    .gamble-card.flip { animation: cardFlip .45s ease-out; }
+    @keyframes cardFlip { from { transform: rotateY(90deg) scale(.9); } to { transform: none; } }
+    .gamble-history { display: flex; justify-content: center; gap: 6px; min-height: 26px; margin-bottom: 8px; }
+    .gh { width: 26px; height: 26px; border-radius: 5px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; }
+    .gh.red { color: #c62828; } .gh.black { color: #111; }
+    .gamble-opts { display: flex; gap: 8px; margin-bottom: 8px; }
+    .gamble-opts .g-btn { flex: 1; min-height: 54px; border-radius: 10px; border: 2px solid #d9a940; font-weight: 900; font-size: 15px; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+    .gamble-opts .g-btn small { font-size: 11px; font-weight: 700; opacity: .9; }
+    .gamble-opts.four .g-btn { font-size: 26px; }
+    .g-btn.red { background: linear-gradient(180deg, #e04848, #a31717); } .g-btn.black { background: linear-gradient(180deg, #3a3a42, #121216); }
+    .g-btn:disabled { opacity: .35; }
+    .auto-limits { margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(212,174,80,.3); }
+    .auto-limits input[type=number] { width: 100%; }
+
+    .gamble-offer { display: none; z-index: 7; border: 2px solid #fff1a6; border-radius: calc(var(--u) * 22); font-weight: 900; font-size: calc(var(--u) * 28); letter-spacing: .05em; color: #3a2102; background: linear-gradient(180deg, #ffe27a, #e0a416); box-shadow: 0 calc(var(--u) * 4) calc(var(--u) * 10) rgba(0,0,0,.6); }
