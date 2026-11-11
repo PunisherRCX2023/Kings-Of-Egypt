@@ -568,6 +568,8 @@
     .auto-limits input[type=number] { width: 100%; }
 
     .gamble-offer { display: none; z-index: 7; border: 2px solid #fff1a6; border-radius: calc(var(--u) * 22); font-weight: 900; font-size: calc(var(--u) * 28); letter-spacing: .05em; color: #3a2102; background: linear-gradient(180deg, #ffe27a, #e0a416); box-shadow: 0 calc(var(--u) * 4) calc(var(--u) * 10) rgba(0,0,0,.6); }
+
+    #fxCanvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 7; }
 </style>
 </head>
 <body>
@@ -599,7 +601,7 @@
   </div>
   <div class="grp">
   <div class="clock" id="clock">10:30</div>
-  <div class="ver" id="gameVersion">v1.51</div>
+  <div class="ver" id="gameVersion">v1.52</div>
   <img class="title-img" src="assets/img/title.png" alt="Kings of Egypt" style="left:calc(var(--u)*36.00);top:calc(var(--u)*100.00);width:calc(var(--u)*696.00);height:calc(var(--u)*120.00);">
   <div class="deco d1" style="left:calc(var(--u)*110.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/eye-of-horus.svg" alt="" draggable="false"></div><div class="deco d2" style="left:calc(var(--u)*222.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/scarab.svg" alt="" draggable="false"></div><div class="deco d3" style="left:calc(var(--u)*334.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/ankh.svg" alt="" draggable="false"></div><div class="deco d4" style="left:calc(var(--u)*446.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/djed-pillar.svg" alt="" draggable="false"></div><div class="deco d5" style="left:calc(var(--u)*558.00);top:calc(var(--u)*222.00);width:calc(var(--u)*100.00);height:calc(var(--u)*100.00);"><img src="assets/img/feather-maat.svg" alt="" draggable="false"></div>
   <div class="expanding-banner" id="expandingSymbolBanner" style="left:calc(var(--u)*60.00);top:calc(var(--u)*222.00);width:calc(var(--u)*648.00);height:calc(var(--u)*100.00);"><span id="expLabel">SÍMBOLO EXPANSIVO:</span><span class="icon" id="expSymbolIcon"></span></div>
@@ -972,6 +974,7 @@
   </div>
 </div>
 
+<script src="assets/js/pixi.min.js"></script>
 <script>
 
   // Áudio sintetizado localmente: começa ligado em cada nova sessão.
@@ -997,7 +1000,8 @@
     const gain = ctx.createGain();
     const start = ctx.currentTime + delay;
     osc.type = type;
-    osc.frequency.setValueAtTime(freq, start);    gain.gain.setValueAtTime(0.0001, start);
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0.0001, start);
     gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     osc.connect(gain); gain.connect(ctx.destination);
@@ -1090,6 +1094,10 @@
   function playBonusStart() { if (playEl(startEl)) duckMusic(2500); }
   function playBonusEnd() { if (playEl(endEl)) duckMusic(4500); }
   function showWinPopup(amount) {
+    const _bet = getTotalBetCash();
+    const _w = FX.expandWait();
+    if (_w > 0) { if (amount >= BIGWIN_MIN_MULT * _bet) FX.holdBig(_w, amount, _bet); setTimeout(() => showWinPopup(amount), _w); return; }   // espera pela animação de expansão
+    if (FX.ready && amount >= BIGWIN_MIN_MULT * _bet && FX.bigWin(amount, _bet)) return;   // prémios grandes: ecrã BIG WIN em vez do número
     const el = document.getElementById('winPopup');
     el.textContent = '+' + amount.toFixed(2).replace('.', ',') + ' €';
     el.style.fontSize = el.textContent.length > 9 ? 'calc(var(--u) * 84)' : '';
@@ -1353,6 +1361,218 @@
     document.getElementById('statusBanner').innerText = gambleStake > 0 ? 'RECOLHIDO ' + gambleStake.toFixed(2) + '€!' : 'PRESSIONE JOGAR PARA COMEÇAR';
     updateUI();
   }
+
+
+  // ===== Efeitos gráficos em PixiJS =====
+  // Camada transparente por cima dos tambores (o design e a lógica do jogo não mudam). Se o PixiJS/WebGL falhar, o jogo corre igual, sem efeitos.
+  const FX = (function () {
+    const S = { ready: false, app: null, host: null, cv: null, tex: {}, sym: {}, parts: [], anims: [], win: null, big: null, bigUntil: 0, idle: 0 };
+    const BIG_MULT = [15, 40, 100];   // BIG WIN / MEGA WIN / EPIC WIN a partir de 15x / 40x / 100x o total apostado
+    const now = () => performance.now();
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const safe = fn => function () { try { return fn.apply(null, arguments); } catch (e) { fail(e); return false; } };
+    function fail(e) { try { console.warn('FX desligado:', e); } catch (x) {} S.ready = false; if (S.cv) S.cv.style.display = 'none'; }
+
+    function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); return PIXI.Texture.from(c); }
+    function makeTextures() {
+      S.tex.spark = canvasTex(64, 64, (g, w, h) => { const r = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+        r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.25, 'rgba(255,236,150,.95)'); r.addColorStop(.6, 'rgba(255,190,60,.35)'); r.addColorStop(1, 'rgba(255,170,40,0)'); g.fillStyle = r; g.fillRect(0, 0, w, h); });
+      S.tex.coin = canvasTex(64, 64, (g, w, h) => { const r = g.createRadialGradient(w * .4, h * .35, 2, w / 2, h / 2, w / 2);
+        r.addColorStop(0, '#fff6b8'); r.addColorStop(.55, '#f0b92e'); r.addColorStop(1, '#9a5f12'); g.fillStyle = r; g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 3, 0, 6.2832); g.fill();
+        g.strokeStyle = '#6b3d08'; g.lineWidth = 3; g.stroke(); g.strokeStyle = 'rgba(255,240,170,.8)'; g.lineWidth = 2; g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 12, 0, 6.2832); g.stroke(); });
+    }
+    function loadSym(sym) {
+      if (S.sym[sym] || !IMG[sym]) return;
+      const img = new Image(); img.onload = () => { try { S.sym[sym] = PIXI.Texture.from(img); } catch (e) {} }; img.src = IMG[sym];
+    }
+    function geom() {
+      const host = S.host.getBoundingClientRect(), rc = document.getElementById('reelsContainer').getBoundingClientRect();
+      return { x0: rc.left - host.left, y0: rc.top - host.top, cw: rc.width / 5, ch: rc.height / 3, W: host.width, H: host.height };
+    }
+    const cell = (G, r, row) => ({ x: G.x0 + r * G.cw, y: G.y0 + row * G.ch, w: G.cw, h: G.ch, cx: G.x0 + (r + .5) * G.cw, cy: G.y0 + (row + .5) * G.ch });
+    function wake() { if (S.ready && !S.app.ticker.started) S.app.ticker.start(); S.idle = 0; }
+    function anim(ms, fn, done) { S.anims.push({ t0: now(), ms: ms, fn: fn, done: done }); wake(); }
+
+    function spawn(x, y, o) {
+      const s = new PIXI.Sprite(o.tex || S.tex.spark); s.anchor.set(.5); s.position.set(x, y); s.blendMode = o.add === false ? 'normal' : 'add'; s.tint = o.tint || 0xffffff;
+      S.layers.fx.addChild(s);
+      S.parts.push({ s: s, vx: o.vx || 0, vy: o.vy || 0, g: o.g || 0, life: 0, max: o.life || .8, sc: o.sc || .4, a0: o.a || 1, rot: o.rot || 0, coin: !!o.coin, ph: Math.random() * 6.28 });
+      s.scale.set(o.sc || .4); wake();
+    }
+    function sparks(x, y, n, spd, sc) { for (let i = 0; i < n; i++) { const a = rnd(0, 6.2832), v = rnd(spd * .3, spd); spawn(x, y, { vx: Math.cos(a) * v, vy: Math.sin(a) * v - spd * .2, g: spd * .8, life: rnd(.5, 1.1), sc: rnd(sc * .5, sc), tint: Math.random() < .5 ? 0xffe27a : 0xffffff }); } }
+
+    // ---- brilho e linhas nas vitórias ----
+    function clearWin() {
+      if (!S.win) return; S.win.objs.forEach(o => { try { o.destroy(); } catch (e) {} }); S.win = null;
+    }
+    function frame(c) {
+      const g = new PIXI.Graphics(), p = c.w * .035, rr = c.w * .09;
+      g.blendMode = 'add';
+      g.roundRect(c.x + p, c.y + p, c.w - 2 * p, c.h - 2 * p, rr).fill({ color: 0xffd34a, alpha: .08 });
+      g.roundRect(c.x + p, c.y + p, c.w - 2 * p, c.h - 2 * p, rr).stroke({ width: c.w * .09, color: 0xffb62e, alpha: .30 });
+      g.roundRect(c.x + p, c.y + p, c.w - 2 * p, c.h - 2 * p, rr).stroke({ width: c.w * .045, color: 0xffe27a, alpha: .75 });
+      g.roundRect(c.x + p, c.y + p, c.w - 2 * p, c.h - 2 * p, rr).stroke({ width: c.w * .018, color: 0xffffff, alpha: .95 });
+      return g;
+    }
+    function win(lines, extra) {
+      if (!S.ready) return false;
+      clearWin(); const G = geom(), seen = {}, cells = [], objs = [];
+      const add = (r, row) => { const k = r + ':' + row; if (!seen[k]) { seen[k] = 1; cells.push(cell(G, r, row)); } };
+      (lines || []).forEach(l => l.forEach(p => add(p.r, p.row))); (extra || []).forEach(p => add(p.r, p.row));
+      if (!cells.length) return false;
+      const frames = cells.map(c => { const g = frame(c); S.layers.win.addChild(g); objs.push(g); return g; });
+      const lineG = new PIXI.Graphics(); lineG.blendMode = 'add'; S.layers.win.addChild(lineG); objs.push(lineG);
+      S.win = { objs: objs, frames: frames, cells: cells, lines: (lines || []).map(l => l.map(p => cell(G, p.r, p.row))), lineG: lineG, t0: now(), G: G };
+      wake(); return true;
+    }
+    function updateWin(dt, t) {
+      const w = S.win, el = (t - w.t0) / 1000;
+      if (el < 3.6) {
+        const k = .7 + .3 * Math.sin(el * 8);
+        w.frames.forEach(f => { f.alpha = k; });
+        const g = w.lineG; g.clear();
+        if (w.lines.length && el < 3.3) {
+          const L = w.lines[Math.floor(el / .7) % w.lines.length];
+          g.moveTo(L[0].cx, L[0].cy); L.slice(1).forEach(c => g.lineTo(c.cx, c.cy));
+          g.stroke({ width: w.G.cw * .11, color: 0xffb62e, alpha: .42, cap: 'round', join: 'round' });
+          g.moveTo(L[0].cx, L[0].cy); L.slice(1).forEach(c => g.lineTo(c.cx, c.cy));
+          g.stroke({ width: w.G.cw * .035, color: 0xfff1b0, alpha: .95, cap: 'round', join: 'round' });
+          L.forEach(c => g.circle(c.cx, c.cy, w.G.cw * .05).fill({ color: 0xffffff, alpha: .9 }));
+        }
+        if (el < 2 && Math.random() < dt * 40) { const c = w.cells[Math.floor(Math.random() * w.cells.length)], side = Math.floor(Math.random() * 4);
+          const px = side < 2 ? rnd(c.x, c.x + c.w) : (side === 2 ? c.x : c.x + c.w), py = side < 2 ? (side === 0 ? c.y : c.y + c.h) : rnd(c.y, c.y + c.h);
+          spawn(px, py, { vx: rnd(-30, 30), vy: rnd(-60, -10), g: 40, life: rnd(.5, .9), sc: rnd(.18, .4), tint: 0xffe27a }); }
+        return true;
+      }
+      if (!w.frozen) { w.frozen = true; w.lineG.clear(); w.frames.forEach(f => { f.alpha = .85; }); return true; }   // fica estático e o ticker pode dormir
+      return false;
+    }
+    function burst(r, row) {
+      if (!S.ready) return false; const c = cell(geom(), r, row); sparks(c.cx, c.cy, 22, c.w * 2.2, .55);
+      const g = new PIXI.Graphics(); g.blendMode = 'add'; S.layers.fx.addChild(g);
+      anim(520, k => { g.clear(); g.circle(c.cx, c.cy, c.w * (.3 + .7 * k)).stroke({ width: c.w * .06 * (1 - k), color: 0xffe27a, alpha: .9 * (1 - k) }); }, () => g.destroy());
+      return true;
+    }
+
+    // ---- expansão do símbolo no tambor inteiro ----
+    function expand(plan, swap) {
+      if (!S.ready) return false;
+      const G = geom();
+      plan.forEach(e => {
+        const tex = S.sym[e.sym];
+        e.reels.forEach((r, ri) => {
+          const x = G.x0 + r * G.cw, y = G.y0, h = G.ch * 3;
+          const flash = new PIXI.Graphics(); flash.blendMode = 'add'; S.layers.fx.addChild(flash);
+          anim(650, k => { flash.clear(); const a = k < .25 ? k / .25 : 1 - (k - .25) / .75; flash.rect(x, y, G.cw, h).fill({ color: 0xfff3b0, alpha: .75 * a }); }, () => flash.destroy());
+          const beam = new PIXI.Sprite(S.tex.spark); beam.anchor.set(.5); beam.blendMode = 'add'; beam.position.set(x + G.cw / 2, y + h / 2); beam.width = G.cw * 1.5; beam.height = h * 1.25; beam.alpha = 0; S.layers.fx.addChild(beam);
+          anim(800, k => { beam.alpha = .8 * Math.sin(Math.PI * k); }, () => beam.destroy());
+          if (tex) [1, 0, 2].forEach((row, i) => {
+            const s = new PIXI.Sprite(tex); s.anchor.set(.5); const base = Math.min(G.cw * .94 / tex.width, G.ch * .94 / tex.height); s.position.set(x + G.cw / 2, y + (row + .5) * G.ch); s.scale.set(0); S.layers.fx.addChild(s);
+            const d0 = i * 90;
+            anim(900 + d0, k => { const tt = Math.max(0, (k * (900 + d0) - d0) / 900); const b = tt < .55 ? tt / .55 * 1.18 : 1.18 - .18 * ((tt - .55) / .45); s.scale.set(base * Math.max(0, b)); }, () => s.destroy());
+          });
+          sparks(x + G.cw / 2, y + h / 2, 26, G.cw * 2.4, .6);
+        });
+      });
+      S.busyUntil = now() + 1150;   // o BIG WIN espera que a expansão acabe
+      setTimeout(swap, 430); wake(); return true;
+    }
+
+    // ---- BIG WIN / MEGA WIN / EPIC WIN com contagem ----
+    function goldFill() {
+      try { return new PIXI.FillGradient({ type: 'linear', start: { x: 0, y: 0 }, end: { x: 0, y: 1 }, colorStops: [{ offset: 0, color: '#fff6c0' }, { offset: .5, color: '#f0b92e' }, { offset: 1, color: '#9a5f12' }], textureSpace: 'local' }); } catch (e) { return '#ffd24a'; }
+    }
+    function endBig() {
+      const b = S.big; if (!b) return; S.big = null; S.cv.style.pointerEvents = 'none';
+      try { b.root.destroy({ children: true }); } catch (e) {}
+    }
+    function bigWin(amount, bet) {
+      if (!S.ready) return false;
+      endBig();
+      const G = geom(), u = G.W / 768, W = G.W, H = G.H;
+      const tierOf = v => v >= bet * BIG_MULT[2] ? 2 : (v >= bet * BIG_MULT[1] ? 1 : 0);
+      const names = ['BIG WIN', 'MEGA WIN', 'EPIC WIN'], dur = [3800, 5200, 6800][tierOf(amount)];
+      const root = new PIXI.Container(); S.layers.top.addChild(root);
+      const dim = new PIXI.Graphics(); dim.rect(0, 0, W, H).fill({ color: 0x000000, alpha: .74 }); root.addChild(dim);
+      const rays = new PIXI.Graphics(); rays.blendMode = 'add'; root.addChild(rays); rays.position.set(W / 2, H * .42);
+      const R = Math.max(W, H);
+      for (let i = 0; i < 14; i++) { const a1 = i / 14 * 6.2832, a2 = a1 + 6.2832 / 28; rays.poly([0, 0, Math.cos(a1) * R, Math.sin(a1) * R, Math.cos(a2) * R, Math.sin(a2) * R]).fill({ color: 0xffc83a, alpha: .16 }); }
+      const glow = new PIXI.Sprite(S.tex.spark); glow.anchor.set(.5); glow.blendMode = 'add'; glow.position.set(W / 2, H * .42); glow.width = W * 1.3; glow.height = W * 1.3; glow.alpha = .55; root.addChild(glow);
+      const style = (size, stroke) => ({ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: size, fontWeight: '900', fill: goldFill(), stroke: { color: 0x4a2a00, width: stroke, join: 'round' }, dropShadow: { color: 0x000000, alpha: .6, blur: 8 * u, distance: 8 * u, angle: Math.PI / 2 }, align: 'center' });
+      const title = new PIXI.Text({ text: names[0], style: style(128 * u, 14 * u) }); title.anchor.set(.5); title.position.set(W / 2, H * .34); root.addChild(title);
+      const titleFit = () => Math.min(1, W * .9 / (title.width / (title.scale.x || 1)));
+      const amt = new PIXI.Text({ text: '0,00 €', style: style(100 * u, 12 * u) }); amt.anchor.set(.5); amt.position.set(W / 2, H * .49); root.addChild(amt);
+      const hint = new PIXI.Text({ text: 'toque para continuar', style: { fontFamily: 'Georgia, serif', fontSize: 22 * u, fill: 0xf1dfa6 } }); hint.anchor.set(.5); hint.position.set(W / 2, H * .6); hint.alpha = .7; root.addChild(hint);
+      S.big = { fit: titleFit, root: root, dim: dim, rays: rays, glow: glow, title: title, amt: amt, hint: hint, t0: now(), dur: dur, amount: amount, bet: bet, tier: 0, coinT: 0, u: u, W: W, H: H, done: false, out: 0 };
+      S.bigUntil = now() + dur + 1500;
+      S.cv.style.pointerEvents = 'auto';
+      S.cv.addEventListener('pointerdown', skipBig, { once: true });
+      try { tone(523, .15, 'triangle', .06); tone(659, .15, 'triangle', .06, .12); tone(784, .35, 'triangle', .06, .24); } catch (e) {}
+      wake(); return true;
+    }
+    function skipBig() { const b = S.big; if (!b) return; if (!b.done) { b.t0 = now() - b.dur; } else { b.out = Math.max(b.out, .01); b.t0 = now() - b.dur - 1500; } }
+    function updateBig(dt, t) {
+      const b = S.big, el = t - b.t0, k = Math.min(1, el / b.dur), e = 1 - Math.pow(1 - k, 3);
+      const val = b.amount * e; b.amt.text = val.toFixed(2).replace('.', ',') + ' €';
+      const tier = val >= b.bet * BIG_MULT[2] ? 2 : (val >= b.bet * BIG_MULT[1] ? 1 : 0);
+      if (tier !== b.tier) { b.tier = tier; b.title.text = ['BIG WIN', 'MEGA WIN', 'EPIC WIN'][tier]; b.fitK = null; b.pop = t; sparks(b.W / 2, b.H * .34, 34, b.W * .9, .8); try { tone(880, .2, 'triangle', .05); } catch (x) {} }
+      const pulse = 1 + .05 * Math.sin(t / 140) + (b.pop && t - b.pop < 350 ? .25 * (1 - (t - b.pop) / 350) : 0);
+      if (b.fitK == null) { b.title.scale.set(1); b.fitK = b.fit(); }
+      b.title.scale.set(pulse * b.fitK); b.amt.scale.set(1 + .03 * Math.sin(t / 90));
+      b.rays.rotation += dt * .25; b.glow.alpha = .45 + .15 * Math.sin(t / 300);
+      b.coinT += dt;   // chuva de moedas
+      const rate = k < 1 ? 55 : 0;
+      while (b.coinT > 1 / Math.max(1, rate) && rate > 0) { b.coinT -= 1 / rate; spawn(rnd(0, b.W), -20, { tex: S.tex.coin, add: false, vx: rnd(-40, 40), vy: rnd(380, 700) * b.u * 1.3, g: 500 * b.u, life: 2.2, sc: rnd(.45, .8) * b.u * 1.5, rot: rnd(-3, 3), coin: true }); }
+      if (k >= 1 && !b.done) { b.done = true; b.hint.alpha = 1; b.holdAt = t; }
+      if (b.done && t - b.holdAt > 1200 && !b.fading) { b.fading = t; }
+      if (b.fading) { const f = Math.min(1, (t - b.fading) / 450); b.root.alpha = 1 - f; if (f >= 1) { endBig(); return false; } }
+      return true;
+    }
+
+    function tick(tk) {
+      const dt = Math.min(.05, tk.deltaMS / 1000), t = now(); let active = false;
+      for (let i = S.parts.length - 1; i >= 0; i--) {
+        const p = S.parts[i]; p.life += dt;
+        if (p.life >= p.max) { p.s.destroy(); S.parts.splice(i, 1); continue; }
+        p.vy += p.g * dt; p.s.x += p.vx * dt; p.s.y += p.vy * dt; const k = p.life / p.max;
+        if (p.coin) { p.ph += dt * 8; p.s.scale.x = Math.abs(Math.cos(p.ph)) * p.sc; p.s.scale.y = p.sc; p.s.alpha = k > .8 ? (1 - k) / .2 : 1; }
+        else { p.s.alpha = p.a0 * (1 - k); p.s.scale.set(p.sc * (1 - .4 * k)); p.s.rotation += p.rot * dt; }
+        active = true;
+      }
+      for (let i = S.anims.length - 1; i >= 0; i--) {
+        const a = S.anims[i], k = Math.min(1, (t - a.t0) / a.ms); a.fn(k); active = true;
+        if (k >= 1) { S.anims.splice(i, 1); if (a.done) a.done(); }
+      }
+      if (S.win && updateWin(dt, t)) active = true;
+      if (S.big && updateBig(dt, t)) active = true;
+      try { S.app.renderer.render({ container: S.app.stage }); } catch (e) { fail(e); return; }
+      if (!active) { S.idle += dt; if (S.idle > .5) S.app.ticker.stop(); } else S.idle = 0;
+    }
+
+    async function init() {
+      if (typeof PIXI === 'undefined' || typeof window.__spinMs === 'number' || window.__noFX) return false;
+      const host = document.getElementById('game-container');
+      const app = new PIXI.Application();
+      await app.init({ backgroundAlpha: 0, antialias: true, autoDensity: true, resolution: Math.min(2, window.devicePixelRatio || 1), resizeTo: host, autoStart: false });
+      const cv = app.canvas; cv.id = 'fxCanvas'; host.appendChild(cv);
+      S.app = app; S.host = host; S.cv = cv; S.layers = { win: new PIXI.Container(), fx: new PIXI.Container(), top: new PIXI.Container() };
+      app.stage.addChild(S.layers.win, S.layers.fx, S.layers.top);
+      makeTextures(); Object.keys(IMG).forEach(loadSym);
+      try { app.ticker.remove(app.render, app); } catch (e) {}   // o render passa a ser feito no tick, com proteção contra erros de WebGL
+      app.ticker.add(tick); app.ticker.stop(); S.ready = true;
+      return true;
+    }
+    return {
+      get ready() { return S.ready; }, init: init, wake: wake,
+      win: safe(win), clear: safe(function () { if (!S.ready) return; clearWin(); }), burst: safe(burst), expand: safe(expand), bigWin: safe(bigWin),
+      bigRemaining: function () { return S.ready ? Math.max(0, S.bigUntil - now()) : 0; },
+      expandWait: function () { return S.ready ? Math.max(0, (S.busyUntil || 0) - now()) : 0; },
+      holdBig: function (wait, amount, bet) { if (!S.ready) return; const dur = amount >= bet * BIG_MULT[2] ? 6800 : (amount >= bet * BIG_MULT[1] ? 5200 : 3800); S.bigUntil = Math.max(S.bigUntil, now() + wait + dur + 1500); },
+      state: S
+    };
+  })();
+  function fxDelay() { return FX.bigRemaining(); }
+  const BIGWIN_MIN_MULT = 15;
 
 
   const COIN_VALUES = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00, 1.50, 2.00, 2.50];
@@ -1799,6 +2019,7 @@
     bonusBookCount = 0;
     disableBetControls(true);
     hideGambleOffer();
+    FX.clear();
     
     if (autoSpinActive) {
       const spinBtn = document.getElementById('spinBtn');
@@ -1847,7 +2068,7 @@
         stripEl.innerHTML = '';
         const reelSyms = plannedGrid[r];
         gridState[r] = reelSyms;
-        reelSyms.forEach(sym => {
+        reelSyms.forEach((sym, rowIdx) => {
           const div = document.createElement('div');
           div.className = 'symbol';
           if (sym === '📖') {
@@ -1855,6 +2076,7 @@
             bonusBookCount++;
             div.classList.add('book-glow');
             playBookCue(bonusBookCount);
+            FX.burst(r, rowIdx);
           }
           div.innerHTML = symHTML(sym); div.dataset.sym = sym;
           stripEl.appendChild(div);
@@ -1897,15 +2119,12 @@
 
 
   function checkAndExpandSymbols() {
-    let total = 0;
-    expansionPlan(gridState).forEach(e => {
-      e.reels.forEach(r => {
-        document.getElementById(`strip-${r}`).querySelectorAll('.symbol').forEach(s => {
-          s.innerHTML = symHTML(e.sym); s.classList.add('expanded', 'winning');
-        });
-      });
-      total += e.win;
-    });
+    const plan = expansionPlan(gridState); let total = 0;
+    plan.forEach(e => { total += e.win; });
+    const swap = () => plan.forEach(e => e.reels.forEach(r => {
+      document.getElementById(`strip-${r}`).querySelectorAll('.symbol').forEach(s => { s.innerHTML = symHTML(e.sym); s.classList.add('expanded', 'winning'); });
+    }));
+    if (!(plan.length && FX.ready && FX.expand(plan, swap))) swap();   // com PixiJS a troca fica a meio da animação de expansão
     return total;
   }
   function refreshExpBanner() {
@@ -1920,7 +2139,7 @@
   function finishSpin(scatters) {
     if (scatters >= 3 && !inFreeSpins) pendingFreeSpins = 8;
     isSpinning = false;
-    let baseWin = 0;
+    let baseWin = 0; const winList = [];
 
     PAYLINES.forEach((line) => {
       let targetSym = null;
@@ -1939,6 +2158,7 @@
       const payInfo = PAY_DATA.find(p => p.icon === targetSym);
       if (payInfo && payInfo.pays[count]) {
         baseWin += payInfo.pays[count] * getCoinValue() * getCoinsPerLine();
+        winList.push(winningReelsIndices.map(col => ({ r: col, row: line[col] })));
         winningReelsIndices.forEach(colIndex => {
           const symbolDivs = document.getElementById(`strip-${colIndex}`).querySelectorAll('.symbol');
           if (symbolDivs[line[colIndex]]) symbolDivs[line[colIndex]].classList.add('winning');
@@ -1948,6 +2168,8 @@
 
     const scatterWin = scatterWinFor(scatters);      // 3/4/5 Pirâmides pagam 2x / 20x / 200x o total apostado
     const expandWin = checkAndExpandSymbols();
+    const scatCells = []; if (scatterWin > 0) gridState.forEach((col, r) => col.forEach((s, row) => { if (s === '📖') scatCells.push({ r: r, row: row }); }));
+    if (winList.length || scatCells.length) FX.win(winList, scatCells);   // brilho, linha premiada e faíscas
     let totalSpinWin = baseWin + scatterWin + expandWin;
 
     // TETO MÁXIMO DO COFRE: NUNCA PAGA ACIMA DO COFRE DE PRÉMIOS
@@ -1975,7 +2197,7 @@
         // pausa de 4 s: dá para ver as Pirâmides, as linhas premiadas e o valor do prémio antes da escolha do símbolo expansivo
         bonusWaiting = true; isSpinning = true;
         document.getElementById('statusBanner').innerText = totalSpinWin > 0 ? 'BÓNUS ATIVADO! PRÉMIO ' + totalSpinWin.toFixed(2) + ' €' : 'BÓNUS ATIVADO!';
-        setTimeout(() => { bonusWaiting = false; isSpinning = false; openBonusRoulette(); saveGame(); }, BONUS_REVEAL_MS);
+        setTimeout(() => { bonusWaiting = false; isSpinning = false; openBonusRoulette(); saveGame(); }, Math.max(BONUS_REVEAL_MS, fxDelay() ? fxDelay() + 300 : 0));
       } else {
         // Re-trigger: +8 spins e um novo símbolo expansivo (até 9); com os 9 ativos, +10 spins
         const allExp = expandingSymbols.length >= 9;
@@ -1996,7 +2218,8 @@
 
     if (inFreeSpins) {
       processFreeSpinStep(totalSpinWin);
-    } else {      if (totalSpinWin > 0) {
+    } else {
+      if (totalSpinWin > 0) {
         balance += totalSpinWin;
         totalPayoutsStat += totalSpinWin;
       }
@@ -2018,7 +2241,7 @@
         if (autoSpinCount <= 0 || (winLim > 0 && totalSpinWin >= winLim) || (balLim > 0 && balance < balLim)) {
           stopAutoSpin();
         } else {
-          setTimeout(() => triggerSpin(), isTurbo ? 400 : 800);
+          setTimeout(() => triggerSpin(), (isTurbo ? 400 : 800) + fxDelay());
         }
       } else if (totalSpinWin > 0 && GAMBLE_ENABLED) {
         offerGamble(totalSpinWin);
@@ -2037,7 +2260,7 @@
     // FIM LIMPO E RIGOROSO EXATAMENTE NO ZERO
     if(freeSpinsLeft > 0) {
       document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
-      setTimeout(() => triggerSpin(true), isTurbo ? 600 : 1200);
+      setTimeout(() => triggerSpin(true), (isTurbo ? 600 : 1200) + fxDelay());
     } else {
       balance += bonusTotalWinAccumulated;
       totalPayoutsStat += bonusTotalWinAccumulated;
@@ -2046,9 +2269,9 @@
       document.getElementById('statusBanner').innerText = "BÓNUS ENCERRADO";
       document.getElementById('celebrationTotalWin').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
       // A celebração é uma janela de fim de bónus e tem de abrir mesmo com inFreeSpins=true.
-      document.getElementById('bonus-celebration-modal').classList.add('active');
       bonusClosePending = true;
-      playBonusEnd();
+      const showCel = () => { document.getElementById('bonus-celebration-modal').classList.add('active'); playBonusEnd(); };
+      if (fxDelay() > 0) setTimeout(showCel, fxDelay() + 200); else showCel();
     }
   }
 
@@ -2435,7 +2658,7 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
-  const GAME_VERSION = 'v1.51';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  const GAME_VERSION = 'v1.52';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
   document.getElementById('gameVersion').textContent = GAME_VERSION;
   restoreGame();
   saveBlocked = false; saveGame();
@@ -2444,6 +2667,7 @@
   document.addEventListener('visibilitychange', function () { if (document.hidden) saveGame(); });
   let _sv = null; document.addEventListener('input', function () { clearTimeout(_sv); _sv = setTimeout(saveGame, 300); });
   startSand(document.getElementById('sandGame'));
+  FX.init().catch(function (e) { console.warn('Efeitos PixiJS indisponíveis:', e); });
   const stopLoadSand = startSand(document.getElementById('sandLoad'));
 
   // Auto-Spin: o botão mostra as voltas que restam
