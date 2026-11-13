@@ -99,8 +99,8 @@
       border-radius: 6px;
     }
     @keyframes bookPulseGlow {
-      0% { filter: drop-shadow(0 0 3px #ffd700) drop-shadow(0 0 6px #ffd700); transform: scale(1); }
-      100% { filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #ffd700); transform: scale(1.08); }
+      0% { filter: drop-shadow(0 0 4px #ff5a00) drop-shadow(0 0 8px #ff7a00); transform: scale(1); }
+      100% { filter: drop-shadow(0 0 9px #ffb000) drop-shadow(0 0 20px #ff4500); transform: scale(1.08); }
     }
 
     .reel.cascading .reel-strip { animation: cascadeDrop var(--cascade-speed, 0.35s) ease-out forwards; }
@@ -417,7 +417,10 @@
     .symbol .si { width: 94%; height: 94%; object-fit: contain; display: block; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 3) rgba(0,0,0,.65)); }
     .symbol.book-glow { filter: none; }
     .symbol.book-glow .si { animation: scatterGlow 1.3s infinite alternate ease-in-out; }
-    @keyframes scatterGlow { from { filter: drop-shadow(0 0 4px #ffc93c) brightness(1); transform: scale(.98); } to { filter: drop-shadow(0 0 16px #fff1a0) brightness(1.18); transform: scale(1.05); } }
+    @keyframes scatterGlow {
+      from { filter: drop-shadow(0 0 4px #ff5a00) drop-shadow(0 0 8px #ff7a00) brightness(1.02); transform: scale(.98); }
+      to { filter: drop-shadow(0 0 8px #ffb000) drop-shadow(0 0 20px #ff4500) brightness(1.22); transform: scale(1.05); }
+    }
     .symbol.winning { background: radial-gradient(circle, rgba(255,220,120,.42), transparent 68%); transform: none; box-shadow: none; z-index: 2; }
     .symbol.winning .si { animation: winPop .7s infinite alternate ease-in-out; }
     @keyframes winPop { from { transform: scale(1); } to { transform: scale(1.1); } }
