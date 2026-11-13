@@ -116,14 +116,14 @@
   }
   function playBonusStart() { if (playEl(startEl)) duckMusic(2500); }
   function playBonusEnd() { if (playEl(endEl)) duckMusic(4500); }
-  function showWinPopup(amount) {
+  function showWinPopup(amount, short) {   // short: versão curta do BIG WIN (antes do bónus / re-trigger, para a espera ficar nos ~3 s)
     const _bet = getTotalBetCash();
-    const _w = FX.expandWait();
-    if (_w > 0) { if (amount >= BIGWIN_MIN_MULT * _bet) FX.holdBig(_w, amount, _bet); setTimeout(() => showWinPopup(amount), _w); return; }   // espera pela animação de expansão
-    if (FX.ready && amount >= BIGWIN_MIN_MULT * _bet && FX.bigWin(amount, _bet)) return;   // prémios grandes: ecrã BIG WIN em vez do número
+    const _w = expandWait();
+    if (_w > 0) { if (amount >= BIGWIN_MIN_MULT * _bet) FX.holdBig(_w, amount, _bet, short); setTimeout(() => showWinPopup(amount, short), _w); return; }   // espera pela animação de expansão
+    if (FX.ready && amount >= BIGWIN_MIN_MULT * _bet && FX.bigWin(amount, _bet, short)) return;   // prémios grandes: ecrã BIG WIN em vez do número
     const el = document.getElementById('winPopup');
-    el.textContent = '+' + amount.toFixed(2).replace('.', ',') + ' €';
-    el.style.fontSize = el.textContent.length > 9 ? 'calc(var(--u) * 84)' : '';
+    el.textContent = amount.toFixed(2).replace('.', ',') + ' €';
+    el.style.fontSize = el.textContent.length > 8 ? 'calc(var(--u) * 84)' : '';
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   }
   document.addEventListener('visibilitychange', syncMusic);
@@ -224,7 +224,7 @@
       adminPassword, depositPassword, withdrawPassword, collabPercentage, isTurbo, soundEnabled, selectedAutoSpinsOption,
       inputs, checks, grid: gridState,
       bonus: { inFreeSpins, freeSpinsLeft, bonusTotalWinAccumulated, expandingSymbols, pendingFreeSpins, pendingExpandChoice,
-        roulette: bonusWaiting || document.getElementById('bonus-roulette-modal').classList.contains('active'), celebration: bonusClosePending },
+        roulette: !retriggerState && (bonusWaiting || document.getElementById('bonus-roulette-modal').classList.contains('active')), celebration: bonusClosePending, retrigger: retriggerState },
       pendingSpin
     };
   }
@@ -265,6 +265,7 @@
     if (s.soundEnabled === false && soundEnabled) toggleSound();
     if (validGrid(s.grid)) { gridState = s.grid; renderGrid(gridState); }
     const b = s.bonus || {};
+    retriggerState = b.retrigger && typeof b.retrigger.extra === 'number' ? b.retrigger : null;
     pendingFreeSpins = num(b.pendingFreeSpins, 8); pendingExpandChoice = b.pendingExpandChoice || null;
     if (b.inFreeSpins) {
       inFreeSpins = true; freeSpinsLeft = num(b.freeSpinsLeft, 0); bonusTotalWinAccumulated = num(b.bonusTotalWinAccumulated, 0); expandingSymbols = Array.isArray(b.expandingSymbols) ? b.expandingSymbols.filter(s => IMG[s]) : (b.expandingSymbol ? [b.expandingSymbol] : []);
@@ -273,7 +274,7 @@
       document.getElementById('statusBanner').innerText = 'FREE SPINS: ' + freeSpinsLeft + ' RESTANTES';
       document.getElementById('winDisplay').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
     }
-    restoredState = { pendingSpin: validGrid(s.pendingSpin && s.pendingSpin.grid) ? s.pendingSpin : null, roulette: !!b.roulette, celebration: !!b.celebration };
+    restoredState = { pendingSpin: validGrid(s.pendingSpin && s.pendingSpin.grid) ? s.pendingSpin : null, roulette: !!b.roulette, celebration: !!b.celebration, retrigger: !!retriggerState };
     updateBetControls(); updateUI();
     return true;
   }
@@ -282,7 +283,7 @@
     const st = restoredState; restoredState = null; if (!st) return;
     if (st.pendingSpin) {
       gridState = st.pendingSpin.grid; renderGrid(gridState);
-      isSpinning = true; disableBetControls(true); document.getElementById('spinBtn').classList.add('disabled');
+      isSpinning = true; disableBetControls(true); document.getElementById('spinBtn').classList.add('disabled'); boughtSpin = !!st.pendingSpin.bought;
       const sc = gridState.filter(r => r.includes('📖')).length;
       setTimeout(() => finishSpinSaved(sc), 400); return;
     }
@@ -290,12 +291,13 @@
       document.getElementById('celebrationTotalWin').innerText = bonusTotalWinAccumulated.toFixed(2) + ' €';
       document.getElementById('bonus-celebration-modal').classList.add('active'); bonusClosePending = true; return;
     }
+    if (st.retrigger && retriggerState) { openBonusRoulette(true); return; }
     if (st.roulette) { openBonusRoulette(); return; }
     if (inFreeSpins && freeSpinsLeft > 0) setTimeout(() => triggerSpin(true), 800);
   }
   function finishSpinSaved(scatters) {   // o resultado é aplicado de uma só vez e só depois o jogo é guardado
     saveBlocked = true;
-    try { finishSpin(scatters); } finally { saveBlocked = false; }
+    try { finishSpin(scatters); } finally { saveBlocked = false; boughtSpin = false; }
     pendingSpin = null; saveGame();
   }
   // Backup em ficheiro (técnico): exportar, importar e apagar os dados guardados
@@ -426,7 +428,7 @@
 
     // ---- brilho e linhas nas vitórias ----
     function clearWin() {
-      if (!S.win) return; S.win.objs.forEach(o => { try { o.destroy(); } catch (e) {} }); S.win = null;
+      if (!S.win) return; S.win.objs.forEach(o => { try { o.destroy(); } catch (e) {} }); S.win = null; wake();   // volta a desenhar para apagar os quadrados
     }
     function frame(c) {
       const g = new PIXI.Graphics(), p = c.w * .035, rr = c.w * .09;
@@ -478,27 +480,30 @@
     }
 
     // ---- expansão do símbolo no tambor inteiro ----
-    function expand(plan, swap) {
-      if (!S.ready) return false;
-      const G = geom();
-      plan.forEach(e => {
-        const tex = S.sym[e.sym];
-        e.reels.forEach((r, ri) => {
-          const x = G.x0 + r * G.cw, y = G.y0, h = G.ch * 3;
-          const flash = new PIXI.Graphics(); flash.blendMode = 'add'; S.layers.fx.addChild(flash);
-          anim(650, k => { flash.clear(); const a = k < .25 ? k / .25 : 1 - (k - .25) / .75; flash.rect(x, y, G.cw, h).fill({ color: 0xfff3b0, alpha: .75 * a }); }, () => flash.destroy());
-          const beam = new PIXI.Sprite(S.tex.spark); beam.anchor.set(.5); beam.blendMode = 'add'; beam.position.set(x + G.cw / 2, y + h / 2); beam.width = G.cw * 1.5; beam.height = h * 1.25; beam.alpha = 0; S.layers.fx.addChild(beam);
-          anim(800, k => { beam.alpha = .8 * Math.sin(Math.PI * k); }, () => beam.destroy());
-          if (tex) [1, 0, 2].forEach((row, i) => {
-            const s = new PIXI.Sprite(tex); s.anchor.set(.5); const base = Math.min(G.cw * .94 / tex.width, G.ch * .94 / tex.height); s.position.set(x + G.cw / 2, y + (row + .5) * G.ch); s.scale.set(0); S.layers.fx.addChild(s);
-            const d0 = i * 90;
-            anim(900 + d0, k => { const tt = Math.max(0, (k * (900 + d0) - d0) / 900); const b = tt < .55 ? tt / .55 * 1.18 : 1.18 - .18 * ((tt - .55) / .45); s.scale.set(base * Math.max(0, b)); }, () => s.destroy());
-          });
-          sparks(x + G.cw / 2, y + h / 2, 26, G.cw * 2.4, .6);
+    function playGroup(e) {
+      const G = geom(), tex = S.sym[e.sym];
+      e.reels.forEach(r => {
+        const x = G.x0 + r * G.cw, y = G.y0, h = G.ch * 3;
+        const flash = new PIXI.Graphics(); flash.blendMode = 'add'; S.layers.fx.addChild(flash);
+        anim(650, k => { flash.clear(); const a = k < .25 ? k / .25 : 1 - (k - .25) / .75; flash.rect(x, y, G.cw, h).fill({ color: 0xfff3b0, alpha: .75 * a }); }, () => flash.destroy());
+        const beam = new PIXI.Sprite(S.tex.spark); beam.anchor.set(.5); beam.blendMode = 'add'; beam.position.set(x + G.cw / 2, y + h / 2); beam.width = G.cw * 1.5; beam.height = h * 1.25; beam.alpha = 0; S.layers.fx.addChild(beam);
+        anim(800, k => { beam.alpha = .8 * Math.sin(Math.PI * k); }, () => beam.destroy());
+        if (tex) [1, 0, 2].forEach((row, i) => {
+          const s = new PIXI.Sprite(tex); s.anchor.set(.5); const base = Math.min(G.cw * .94 / tex.width, G.ch * .94 / tex.height); s.position.set(x + G.cw / 2, y + (row + .5) * G.ch); s.scale.set(0); S.layers.fx.addChild(s);
+          const d0 = i * 90;
+          anim(900 + d0, k => { const tt = Math.max(0, (k * (900 + d0) - d0) / 900); const b = tt < .55 ? tt / .55 * 1.18 : 1.18 - .18 * ((tt - .55) / .45); s.scale.set(base * Math.max(0, b)); }, () => s.destroy());
         });
+        sparks(x + G.cw / 2, y + h / 2, 26, G.cw * 2.4, .6);
       });
-      S.busyUntil = now() + 1150;   // o BIG WIN espera que a expansão acabe
-      setTimeout(swap, 430); wake(); return true;
+    }
+    // Expande um símbolo de cada vez (do prémio menor para o maior); swap(e) troca os símbolos a meio da animação de cada um
+    function expand(plan, swap, step) {
+      if (!S.ready) return false;
+      plan.forEach((e, gi) => {
+        setTimeout(() => { try { if (S.ready) playGroup(e); } catch (x) { fail(x); } }, gi * (step || 1000));
+        setTimeout(() => swap(e), gi * (step || 1000) + 430);
+      });
+      wake(); return true;
     }
 
     // ---- BIG WIN / MEGA WIN / EPIC WIN com contagem ----
@@ -509,12 +514,12 @@
       const b = S.big; if (!b) return; S.big = null; S.cv.style.pointerEvents = 'none';
       try { b.root.destroy({ children: true }); } catch (e) {}
     }
-    function bigWin(amount, bet) {
+    function bigWin(amount, bet, short) {
       if (!S.ready) return false;
       endBig();
       const G = geom(), u = G.W / 768, W = G.W, H = G.H;
       const tierOf = v => v >= bet * BIG_MULT[2] ? 2 : (v >= bet * BIG_MULT[1] ? 1 : 0);
-      const names = ['BIG WIN', 'MEGA WIN', 'EPIC WIN'], dur = [3800, 5200, 6800][tierOf(amount)];
+      const names = ['BIG WIN', 'MEGA WIN', 'EPIC WIN'], dur = short ? Math.min(1700, [3800, 5200, 6800][tierOf(amount)]) : [3800, 5200, 6800][tierOf(amount)];
       const root = new PIXI.Container(); S.layers.top.addChild(root);
       const dim = new PIXI.Graphics(); dim.rect(0, 0, W, H).fill({ color: 0x000000, alpha: .74 }); root.addChild(dim);
       const rays = new PIXI.Graphics(); rays.blendMode = 'add'; root.addChild(rays); rays.position.set(W / 2, H * .42);
@@ -526,8 +531,8 @@
       const titleFit = () => Math.min(1, W * .9 / (title.width / (title.scale.x || 1)));
       const amt = new PIXI.Text({ text: '0,00 €', style: style(100 * u, 12 * u) }); amt.anchor.set(.5); amt.position.set(W / 2, H * .49); root.addChild(amt);
       const hint = new PIXI.Text({ text: 'toque para continuar', style: { fontFamily: 'Georgia, serif', fontSize: 22 * u, fill: 0xf1dfa6 } }); hint.anchor.set(.5); hint.position.set(W / 2, H * .6); hint.alpha = .7; root.addChild(hint);
-      S.big = { fit: titleFit, root: root, dim: dim, rays: rays, glow: glow, title: title, amt: amt, hint: hint, t0: now(), dur: dur, amount: amount, bet: bet, tier: 0, coinT: 0, u: u, W: W, H: H, done: false, out: 0 };
-      S.bigUntil = now() + dur + 1500;
+      S.big = { short: !!short, fit: titleFit, root: root, dim: dim, rays: rays, glow: glow, title: title, amt: amt, hint: hint, t0: now(), dur: dur, amount: amount, bet: bet, tier: 0, coinT: 0, u: u, W: W, H: H, done: false, out: 0 };
+      S.bigUntil = now() + dur + (short ? 900 : 1500);
       S.cv.style.pointerEvents = 'auto';
       S.cv.addEventListener('pointerdown', skipBig, { once: true });
       try { tone(523, .15, 'triangle', .06); tone(659, .15, 'triangle', .06, .12); tone(784, .35, 'triangle', .06, .24); } catch (e) {}
@@ -547,7 +552,7 @@
       const rate = k < 1 ? 55 : 0;
       while (b.coinT > 1 / Math.max(1, rate) && rate > 0) { b.coinT -= 1 / rate; spawn(rnd(0, b.W), -20, { tex: S.tex.coin, add: false, vx: rnd(-40, 40), vy: rnd(380, 700) * b.u * 1.3, g: 500 * b.u, life: 2.2, sc: rnd(.45, .8) * b.u * 1.5, rot: rnd(-3, 3), coin: true }); }
       if (k >= 1 && !b.done) { b.done = true; b.hint.alpha = 1; b.holdAt = t; }
-      if (b.done && t - b.holdAt > 1200 && !b.fading) { b.fading = t; }
+      if (b.done && t - b.holdAt > (b.short ? 500 : 1200) && !b.fading) { b.fading = t; }
       if (b.fading) { const f = Math.min(1, (t - b.fading) / 450); b.root.alpha = 1 - f; if (f >= 1) { endBig(); return false; } }
       return true;
     }
@@ -590,12 +595,61 @@
       win: safe(win), clear: safe(function () { if (!S.ready) return; clearWin(); }), burst: safe(burst), expand: safe(expand), bigWin: safe(bigWin),
       bigRemaining: function () { return S.ready ? Math.max(0, S.bigUntil - now()) : 0; },
       expandWait: function () { return S.ready ? Math.max(0, (S.busyUntil || 0) - now()) : 0; },
-      holdBig: function (wait, amount, bet) { if (!S.ready) return; const dur = amount >= bet * BIG_MULT[2] ? 6800 : (amount >= bet * BIG_MULT[1] ? 5200 : 3800); S.bigUntil = Math.max(S.bigUntil, now() + wait + dur + 1500); },
+      holdBig: function (wait, amount, bet, short) { if (!S.ready) return; let dur = amount >= bet * BIG_MULT[2] ? 6800 : (amount >= bet * BIG_MULT[1] ? 5200 : 3800); if (short) dur = Math.min(dur, 1700); S.bigUntil = Math.max(S.bigUntil, now() + wait + dur + (short ? 900 : 1500)); },
       state: S
     };
   })();
-  function fxDelay() { return FX.bigRemaining(); }
+  let expandBusyUntil = 0;   // enquanto os símbolos expansivos vão expandindo, o prémio e o BIG WIN esperam
+  function expandWait() { return Math.max(0, expandBusyUntil - performance.now()); }
+  function fxDelay() { return Math.max(FX.bigRemaining(), expandWait()); }
   const BIGWIN_MIN_MULT = 15;
+
+  // ===== Balão com os prémios do símbolo: carregar e manter no símbolo; ao largar o dedo desaparece =====
+  const eur = v => v.toFixed(2).replace('.', ',') + ' €';
+  function symTipHTML(sym) {
+    const p = PAY_DATA.find(x => x.icon === sym); if (!p) return '';
+    const unit = getCoinValue() * getCoinsPerLine(), bet = getTotalBetCash(); let rows = '';
+    if (p.scatter) {
+      [5, 4, 3, 2].forEach(n => { rows += '<div class="tip-row"><span>' + n + ' Pirâmides' + (n === 2 ? ' (desde o 1.º tambor, só jogo normal)' : '') + '</span><b>' + eur(SCATTER_PAYS[n] * bet) + '</b></div>'; });
+      rows += '<div class="tip-note">3 ou mais pagam em qualquer posição. Substitui os outros símbolos.</div>';
+    } else {
+      Object.keys(p.pays).sort((a, b) => b - a).forEach(n => { rows += '<div class="tip-row"><span>' + n + 'x</span><b>' + eur(p.pays[n] * unit) + '</b></div>'; });
+      if (inFreeSpins && expandingSymbols.includes(sym)) {
+        rows += '<div class="tip-note">Símbolo expansivo: paga em qualquer posição</div>';
+        [5, 4, 3, 2].filter(n => n >= expMin(sym) && p.pays[n]).forEach(n => { rows += '<div class="tip-row"><span>' + n + ' tambores</span><b>' + eur(p.pays[n] * unit * 10) + '</b></div>'; });
+      }
+    }
+    return '<div class="tip-head">' + symHTML(sym) + '<span>' + p.name + (p.scatter ? ' (Scatter)' : '') + '</span></div>' + rows;
+  }
+  function hideSymTip() { const t = document.getElementById('symTip'); if (t) t.style.display = 'none'; }
+  function showSymTip(col, row, sym) {
+    const tip = document.getElementById('symTip'), host = document.getElementById('game-container').getBoundingClientRect(), rc = document.getElementById('reelsContainer').getBoundingClientRect();
+    tip.innerHTML = symTipHTML(sym); tip.style.display = 'block';
+    const cw = rc.width / 5, ch = rc.height / 3, cx = rc.left - host.left + (col + .5) * cw, top = rc.top - host.top + row * ch;
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    tip.style.left = Math.min(Math.max(8, cx - tw / 2), host.width - tw - 8) + 'px';
+    let y = top - th - 8; if (y < 8) y = top + ch + 8;
+    tip.style.top = y + 'px';
+  }
+  function initSymTip() {
+    const host = document.getElementById('game-container'), tip = document.createElement('div');
+    tip.id = 'symTip'; tip.className = 'sym-tip'; host.appendChild(tip);
+    const rc = document.getElementById('reelsContainer');
+    rc.addEventListener('pointerdown', function (e) {
+      if (isSpinning || bonusWaiting || retriggerState || document.querySelector('.modal.active')) return;
+      const r = rc.getBoundingClientRect();
+      const col = Math.min(4, Math.max(0, Math.floor((e.clientX - r.left) / (r.width / 5)))), row = Math.min(2, Math.max(0, Math.floor((e.clientY - r.top) / (r.height / 3))));
+      const cellEl = document.getElementById('strip-' + col).querySelectorAll('.symbol')[row], sym = cellEl && cellEl.dataset.sym;
+      if (sym) showSymTip(col, row, sym);
+    });
+    ['pointerup', 'pointercancel'].forEach(function (ev) { window.addEventListener(ev, hideSymTip, true); });
+    window.addEventListener('blur', hideSymTip);
+    // Sem seleção azul, menu de imagem ou arrastar no telemóvel (os campos de texto continuam a funcionar)
+    const inField = t => { const el = t && (t.nodeType === 3 ? t.parentElement : t); return !!(el && el.closest && el.closest('input, textarea, select')); };
+    document.addEventListener('selectstart', function (e) { if (!inField(e.target)) e.preventDefault(); });
+    document.addEventListener('contextmenu', function (e) { if (!inField(e.target)) e.preventDefault(); });
+    document.addEventListener('dragstart', function (e) { e.preventDefault(); });
+  }
 
 
   const COIN_VALUES = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00, 1.50, 2.00, 2.50];
@@ -704,7 +758,7 @@
   function getVol() { const el = document.getElementById('inputVolatility'); const i = el ? Number(el.value) - 1 : 2; return VOL_LEVELS[Math.max(0, Math.min(4, i))]; }
   let pendingFreeSpins = 8;
   let bonusWaiting = false;   // pausa entre o fim do giro com bónus e o ecrã de escolha do símbolo expansivo
-  const BONUS_REVEAL_MS = (typeof window.__spinMs === 'number') ? 0 : 4000;   // 4 s para ver o prémio da jogada e as Pirâmides
+  const BONUS_REVEAL_MS = (typeof window.__spinMs === 'number') ? 0 : 3000;   // 3 s para ver o prémio da jogada e as Pirâmides
   let vaultTopUps = 0;      // dinheiro depositado no cofre de prémios pelo técnico
   let spinCutEvents = 0;    // (diagnóstico) quantas vezes um prémio teve de ser cortado — deve ficar sempre a 0
   const SPIN_MS = (typeof window.__spinMs === 'number') ? window.__spinMs : 2000;         // tempo de processamento de cada giro
@@ -750,37 +804,55 @@
     return Math.min(avail * VAULT_PAYOUT_FRACTION, tierMax * bet, MAX_WIN_MULT * bet);   // nunca mais de 5.000x o total apostado por giro
   }
   // Avalia uma grelha sem tocar no ecrã (mesma lógica de linhas e símbolo expansivo do jogo).
-  const SCATTER_PAYS = { 3: 2, 4: 20, 5: 200 };   // × total apostado, com 3 / 4 / 5 Pirâmides em qualquer posição
-  const MAX_WIN_MULT = 5000;                        // teto por giro: 5.000× o total apostado
+  const SCATTER_PAYS = { 2: 5, 3: 20, 4: 100, 5: 500 };   // × total apostado (aposta de 0,10 €: 0,50 / 2,00 / 10,00 / 50,00 €)
+  const MAX_WIN_MULT = 5000;                               // teto por giro: 5.000× o total apostado
+  const EXP_ORDER = ['10', 'J', 'Q', '🤴', 'A', '🪲', '🦅', '🐺', '👑'];   // expansão do prémio menor para o maior: 10, J, Q, K, A, Osiris, Hórus, Anúbis, Rá
+  let boughtSpin = false;                                  // a jogada grátis da compra de bónus não paga o prémio do scatter
   const expMin = sym => ((PAY_DATA.find(p => p.icon === sym) || {}).high) ? 2 : 3;
-  function topPay(sym) { const p = PAY_DATA.find(x => x.icon === sym); return p && p.pays ? (p.pays[5] || 0) : 0; }
-  // Expansão nos Free Spins: cada símbolo expansivo (do mais valioso para o menos) expande nos tambores onde aparece; um tambor só expande uma vez.
+  // Cada símbolo expansivo paga pelos tambores onde apareceu na grelha; os prémios somam-se. Expandem um a um, do menor para o maior.
   function expansionPlan(grid) {
     if (!inFreeSpins || !expandingSymbols.length) return [];
-    const taken = new Set(), plan = [];
-    expandingSymbols.slice().sort((a, b) => topPay(b) - topPay(a)).forEach(sym => {
-      const reels = [0, 1, 2, 3, 4].filter(r => !taken.has(r) && grid[r].includes(sym));
+    const plan = [];
+    EXP_ORDER.forEach(sym => {
+      if (!expandingSymbols.includes(sym)) return;
+      const reels = [0, 1, 2, 3, 4].filter(r => grid[r].includes(sym));
       if (reels.length >= expMin(sym)) {
-        reels.forEach(r => taken.add(r));
         const mult = PAY_DATA.find(p => p.icon === sym).pays[reels.length] || 0;
         plan.push({ sym: sym, reels: reels, win: mult * getCoinValue() * getCoinsPerLine() * 10 });
       }
     });
     return plan;
   }
-  function scatterWinFor(count) { return count >= 3 ? SCATTER_PAYS[Math.min(5, count)] * getTotalBetCash() : 0; }
+  // Linhas premiadas. 2 ou mais Pirâmides seguidas desde o 1.º tambor pagam como scatter (não como linha); nos Free Spins só 3 ou mais.
+  function lineWins(grid) {
+    const out = [];
+    PAYLINES.forEach(line => {
+      const syms = line.map((row, c) => grid[c][row]);
+      let lead = 0; while (lead < 5 && syms[lead] === '📖') lead++;
+      if (lead >= 3 || (lead === 2 && !inFreeSpins)) return;
+      let target = null;
+      for (let c = 0; c < 5; c++) { if (syms[c] !== '📖') { target = syms[c]; break; } }
+      if (!target) return;
+      let count = 0; const reels = [];
+      for (let c = 0; c < 5; c++) { if (syms[c] === target || syms[c] === '📖') { count++; reels.push(c); } else break; }
+      const info = PAY_DATA.find(p => p.icon === target);
+      const mult = info && info.pays[count];
+      if (mult) out.push({ line: line, count: count, sym: target, mult: mult, reels: reels });
+    });
+    return out;
+  }
+  // Scatter: 3/4/5 Pirâmides pagam em qualquer posição; no jogo normal, 2 Pirâmides numa linha desde o 1.º tambor pagam o prémio de 2.
+  function scatterPrize(grid) {
+    if (boughtSpin) return 0;
+    const n = grid.filter(r => r.includes('📖')).length;
+    if (n >= 3) return SCATTER_PAYS[Math.min(5, n)] * getTotalBetCash();
+    if (n === 2 && !inFreeSpins && PAYLINES.some(l => grid[0][l[0]] === '📖' && grid[1][l[1]] === '📖')) return SCATTER_PAYS[2] * getTotalBetCash();
+    return 0;
+  }
   function evalGrid(grid) {
     let win = 0;
-    PAYLINES.forEach(line => {
-      let target = null;
-      for (let c = 0; c < 5; c++) { const s = grid[c][line[c]]; if (s !== '📖') { target = s; break; } }
-      if (!target) target = '👑';   // linha só com Pirâmides paga como o símbolo mais valioso
-      let count = 0;
-      for (let c = 0; c < 5; c++) { const s = grid[c][line[c]]; if (s === target || s === '📖') count++; else break; }
-      const info = PAY_DATA.find(p => p.icon === target);
-      if (info && info.pays[count]) win += info.pays[count] * getCoinValue() * getCoinsPerLine();
-    });
-    win += scatterWinFor(grid.filter(r => r.includes('📖')).length);
+    lineWins(grid).forEach(r => { win += r.mult * getCoinValue() * getCoinsPerLine(); });
+    win += scatterPrize(grid);
     expansionPlan(grid).forEach(e => { win += e.win; });
     return win;
   }
@@ -873,10 +945,7 @@
   function bonusBuyScatterCount() {
     const vf = Math.min(1, Math.max(0, getVault()) / 500);
     const r = Math.random();
-    let n = r < 0.10 * vf ? 5 : (r < 0.35 * vf ? 4 : 3);
-    const bet = getTotalBetCash(), cap = maxAllowedWin(Math.max(0, getVault()), bet);
-    while (n > 3 && SCATTER_PAYS[n] * bet > cap + 1e-9) n--;   // o prémio do scatter tem de caber no cofre
-    return n;
+    return r < 0.10 * vf ? 5 : (r < 0.35 * vf ? 4 : 3);
   }
   function planForcedGrid(rtp, n) {
     const bet = getTotalBetCash();
@@ -892,7 +961,7 @@
     }
     return best;
   }
-  function startBoughtBonusSpin() { forcedBookCount = bonusBuyScatterCount(); triggerSpin(true); }
+  function startBoughtBonusSpin() { boughtSpin = true; forcedBookCount = bonusBuyScatterCount(); triggerSpin(true); }
 
 
   function initGrid() {
@@ -1043,6 +1112,7 @@
     disableBetControls(true);
     hideGambleOffer();
     FX.clear();
+    hideSymTip();
     
     if (autoSpinActive) {
       const spinBtn = document.getElementById('spinBtn');
@@ -1063,7 +1133,7 @@
     const rtp = parseInt(document.getElementById('inputRtp').value);
     // 1) A máquina calcula TUDO antes de mostrar: RTP, volatilidade, teases e o cofre de prémios (a grelha final já respeita o cofre)
     const plannedGrid = planSpinGrid(rtp);
-    pendingSpin = { grid: plannedGrid }; saveGame();
+    pendingSpin = { grid: plannedGrid, bought: boughtSpin }; saveGame();
     // 2) Os tambores começam a rolar logo (de cima para baixo) e o último pára aos 2 s (Turbo: mais rápido)
     const T = isTurbo ? SPIN_MS_TURBO : SPIN_MS;
     const stagger = isTurbo ? 60 : 150;
@@ -1144,10 +1214,13 @@
   function checkAndExpandSymbols() {
     const plan = expansionPlan(gridState); let total = 0;
     plan.forEach(e => { total += e.win; });
-    const swap = () => plan.forEach(e => e.reels.forEach(r => {
-      document.getElementById(`strip-${r}`).querySelectorAll('.symbol').forEach(s => { s.innerHTML = symHTML(e.sym); s.classList.add('expanded', 'winning'); });
-    }));
-    if (!(plan.length && FX.ready && FX.expand(plan, swap))) swap();   // com PixiJS a troca fica a meio da animação de expansão
+    if (!plan.length) return 0;
+    // um símbolo expansivo de cada vez, do prémio menor para o maior
+    const swap = e => e.reels.forEach(r => {
+      document.getElementById(`strip-${r}`).querySelectorAll('.symbol').forEach(s => { s.innerHTML = symHTML(e.sym); s.dataset.sym = e.sym; s.classList.add('expanded', 'winning'); });
+    });
+    if (FX.ready && FX.expand(plan, swap, 1000)) expandBusyUntil = performance.now() + plan.length * 1000 + 250;
+    else { plan.forEach((e, i) => setTimeout(() => swap(e), i * 900)); expandBusyUntil = performance.now() + plan.length * 900 + 450; }
     return total;
   }
   function refreshExpBanner() {
@@ -1158,42 +1231,31 @@
     document.getElementById('expandingSymbolBanner').style.display = n ? 'block' : 'none';
   }
   let retriggerNote = '';
+  let retriggerState = null;   // re-trigger em curso: { extra: spins ganhos, chosen: símbolo extra (ou null com os 9 ativos) }
+  function pickExtraSymbol() {
+    const cand = SYMBOLS.filter(s => s !== '📖' && !expandingSymbols.includes(s));
+    return cand.length ? cand[Math.floor(Math.random() * cand.length)] : null;
+  }
 
   function finishSpin(scatters) {
     if (scatters >= 3 && !inFreeSpins) pendingFreeSpins = 8;
     isSpinning = false;
     let baseWin = 0; const winList = [];
 
-    PAYLINES.forEach((line) => {
-      let targetSym = null;
-      for (let col = 0; col < 5; col++) {
-        let sym = gridState[col][line[col]];
-        if (sym !== '📖') { targetSym = sym; break; }
-      }
-      if (!targetSym) targetSym = '👑';
-
-      let count = 0;
-      let winningReelsIndices = [];
-      for (let col = 0; col < 5; col++) {
-        let sym = gridState[col][line[col]];
-        if (sym === targetSym || sym === '📖') { count++; winningReelsIndices.push(col); } else { break; }
-      }
-      const payInfo = PAY_DATA.find(p => p.icon === targetSym);
-      if (payInfo && payInfo.pays[count]) {
-        baseWin += payInfo.pays[count] * getCoinValue() * getCoinsPerLine();
-        winList.push(winningReelsIndices.map(col => ({ r: col, row: line[col] })));
-        winningReelsIndices.forEach(colIndex => {
-          const symbolDivs = document.getElementById(`strip-${colIndex}`).querySelectorAll('.symbol');
-          if (symbolDivs[line[colIndex]]) symbolDivs[line[colIndex]].classList.add('winning');
-        });
-      }
+    lineWins(gridState).forEach(r => {
+      baseWin += r.mult * getCoinValue() * getCoinsPerLine();
+      winList.push(r.reels.map(col => ({ r: col, row: r.line[col] })));
+      r.reels.forEach(colIndex => {
+        const symbolDivs = document.getElementById(`strip-${colIndex}`).querySelectorAll('.symbol');
+        if (symbolDivs[r.line[colIndex]]) symbolDivs[r.line[colIndex]].classList.add('winning');
+      });
     });
 
-    const scatterWin = scatterWinFor(scatters);      // 3/4/5 Pirâmides pagam 2x / 20x / 200x o total apostado
+    const scatterWin = scatterPrize(gridState);   // 3/4/5 Pirâmides em qualquer posição; 2 seguidas desde o 1.º tambor (só jogo normal)
     const expandWin = checkAndExpandSymbols();
+    let totalSpinWin = baseWin + scatterWin + expandWin;
     const scatCells = []; if (scatterWin > 0) gridState.forEach((col, r) => col.forEach((s, row) => { if (s === '📖') scatCells.push({ r: r, row: row }); }));
     if (winList.length || scatCells.length) FX.win(winList, scatCells);   // brilho, linha premiada e faíscas
-    let totalSpinWin = baseWin + scatterWin + expandWin;
 
     // TETO MÁXIMO DO COFRE: NUNCA PAGA ACIMA DO COFRE DE PRÉMIOS
     let currentVault = getVault();
@@ -1212,29 +1274,24 @@
           balance += payable;
           totalPayoutsStat += payable;
           document.getElementById('winDisplay').innerText = payable.toFixed(2) + ' €';
-          showWinPopup(payable);
+          showWinPopup(payable, true);
         }
         if (autoSpinActive) autoSpinCount = Math.max(0, autoSpinCount - 1);
         if (autoSpinActive && document.getElementById('chkAutoStopBonus').checked) stopAutoSpin();
         updateUI();
-        // pausa de 4 s: dá para ver as Pirâmides, as linhas premiadas e o valor do prémio antes da escolha do símbolo expansivo
+        // pausa de 3 s: dá para ver as Pirâmides, as linhas premiadas e o valor do prémio antes da escolha do símbolo expansivo
         bonusWaiting = true; isSpinning = true;
         document.getElementById('statusBanner').innerText = totalSpinWin > 0 ? 'BÓNUS ATIVADO! PRÉMIO ' + totalSpinWin.toFixed(2) + ' €' : 'BÓNUS ATIVADO!';
         setTimeout(() => { bonusWaiting = false; isSpinning = false; openBonusRoulette(); saveGame(); }, Math.max(BONUS_REVEAL_MS, fxDelay() ? fxDelay() + 300 : 0));
       } else {
-        // Re-trigger: +8 spins e um novo símbolo expansivo (até 9); com os 9 ativos, +10 spins
+        // Re-trigger: +8 spins e um símbolo expansivo extra (até 9); com os 9 ativos, +10 spins. Abre uma janela com roleta para o símbolo extra.
         const allExp = expandingSymbols.length >= 9;
         const extraSpins = allExp ? 10 : 8;
         freeSpinsLeft += extraSpins;
-        retriggerNote = 'RE-TRIGGER! +' + extraSpins + ' SPINS';
-        if (!allExp) {
-          const cand = SYMBOLS.filter(s => s !== '📖' && !expandingSymbols.includes(s));
-          expandingSymbols.push(cand[Math.floor(Math.random() * cand.length)]);
-          refreshExpBanner();
-          retriggerNote += ' E NOVO SÍMBOLO!';
-          tone(784, .2, 'triangle', .06); tone(1047, .4, 'triangle', .06, .12);
-        }
-        processFreeSpinStep(totalSpinWin);
+        retriggerState = { extra: extraSpins, chosen: allExp ? null : pickExtraSymbol() };
+        processFreeSpinStep(totalSpinWin, true);   // contabiliza o prémio mas só continua depois da janela de re-trigger
+        document.getElementById('statusBanner').innerText = 'RE-TRIGGER! +' + extraSpins + ' SPINS';
+        setTimeout(() => { openBonusRoulette(true); saveGame(); }, Math.max(BONUS_REVEAL_MS, fxDelay() ? fxDelay() + 300 : 0));
       }
       return;
     }
@@ -1272,8 +1329,8 @@
     }
   }
 
-  function processFreeSpinStep(totalSpinWin) {
-    if (totalSpinWin > 0) showWinPopup(totalSpinWin);
+  function processFreeSpinStep(totalSpinWin, deferNext) {
+    if (totalSpinWin > 0) showWinPopup(totalSpinWin, deferNext);
     freeSpinsLeft = Math.max(0, freeSpinsLeft - 1);
     
     // ACCUMULATION PROGRESSIVA REAL
@@ -1283,7 +1340,7 @@
     // FIM LIMPO E RIGOROSO EXATAMENTE NO ZERO
     if(freeSpinsLeft > 0) {
       document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
-      setTimeout(() => triggerSpin(true), (isTurbo ? 600 : 1200) + fxDelay());
+      if (!deferNext) setTimeout(() => triggerSpin(true), (isTurbo ? 600 : 1200) + fxDelay());
     } else {
       balance += bonusTotalWinAccumulated;
       totalPayoutsStat += bonusTotalWinAccumulated;
@@ -1298,42 +1355,61 @@
     }
   }
 
-  function openBonusRoulette() {
+  function openBonusRoulette(isRetrigger) {
+    const rs = isRetrigger ? retriggerState : null;
     const modal = document.getElementById('bonus-roulette-modal');
     const display = document.getElementById('rouletteDisplaySymbol');
     const msg = document.getElementById('rouletteMsg');
     const confirmBtn = document.getElementById('confirmBonusBtn');
+    if (!confirmBtn.dataset.t) confirmBtn.dataset.t = confirmBtn.innerText;
+    confirmBtn.innerText = rs ? 'CONTINUAR' : confirmBtn.dataset.t;
     if (rouletteTimer) { clearTimeout(rouletteTimer); rouletteTimer = null; }
+    FX.clear();
     confirmBtn.style.display = 'none';
     display.classList.remove('picked');
-    msg.innerText = 'Parabéns, tem ' + pendingFreeSpins + ' spins grátis! A sortear o símbolo expansível...';
+    const extra = rs ? rs.extra : pendingFreeSpins;
     modal.classList.add('active');
     playBonusStart();
-
-    const validExp = PAY_DATA.filter(p => p.icon !== '📖');
-    const chosen = pendingExpandChoice || validExp[Math.floor(Math.random() * validExp.length)].icon;
-    pendingExpandChoice = chosen;
+    if (rs && !rs.chosen) {   // com os 9 símbolos já ativos só há spins extra
+      display.innerHTML = symHTML('📖');
+      msg.innerText = 'Parabéns, ganhou +' + extra + ' spins!';
+      confirmBtn.style.display = 'block';
+      return;
+    }
+    msg.innerText = rs ? 'Parabéns, ganhou +' + extra + ' spins! A sortear o símbolo expansível extra...' : 'Parabéns, tem ' + extra + ' spins grátis! A sortear o símbolo expansível...';
+    const validExp = PAY_DATA.filter(p => p.icon !== '📖' && !(rs && expandingSymbols.includes(p.icon)));
+    const chosen = rs ? rs.chosen : (pendingExpandChoice || validExp[Math.floor(Math.random() * validExp.length)].icon);
+    if (!rs) pendingExpandChoice = chosen;
     const TOTAL = 5000, t0 = performance.now();
     let last = '';
     function step() {
       const el = performance.now() - t0;
       if (el >= TOTAL) {
-        rouletteTimer = null; expandingSymbols = [chosen];
+        rouletteTimer = null;
+        if (rs) { if (!expandingSymbols.includes(chosen)) expandingSymbols.push(chosen); refreshExpBanner(); } else expandingSymbols = [chosen];
         display.innerHTML = symHTML(chosen); display.classList.add('picked');
-        msg.innerText = 'Parabéns, tem ' + pendingFreeSpins + ' spins grátis e o seu símbolo expansível é:';
+        msg.innerText = rs ? 'Parabéns, ganhou +' + extra + ' spins e o seu símbolo expansível extra é:' : 'Parabéns, tem ' + extra + ' spins grátis e o seu símbolo expansível é:';
         tone(784, .25, 'triangle', .06); tone(1047, .45, 'triangle', .06, .12);
         confirmBtn.style.display = 'block';
+        saveGame();
         return;
       }
-      let s; do { s = validExp[Math.floor(Math.random() * validExp.length)].icon; } while (s === last);
+      let s; do { s = validExp[Math.floor(Math.random() * validExp.length)].icon; } while (s === last && validExp.length > 1);
       last = s; display.innerHTML = symHTML(s);
       tone(500 + 300 * (1 - el / TOTAL), .03, 'square', .018);
       rouletteTimer = setTimeout(step, 45 + 470 * Math.pow(el / TOTAL, 2.2));
     }
     step();
   }
+  function continueAfterRetrigger() {
+    closeModal('bonus-roulette-modal'); retriggerState = null; refreshExpBanner();
+    document.getElementById('statusBanner').innerText = `FREE SPINS: ${freeSpinsLeft} RESTANTES`;
+    saveGame(); setTimeout(() => triggerSpin(true), 500);
+  }
 
-  function startBonusWithSymbol() {
+  
+function startBonusWithSymbol() {
+    if (retriggerState) { continueAfterRetrigger(); return; }
     closeModal('bonus-roulette-modal');
     inFreeSpins = true;
     freeSpinsLeft = pendingFreeSpins;
@@ -1347,6 +1423,7 @@
 
   function closeBonusCelebration() {
     bonusClosePending = false;
+    retriggerState = null;
     closeModal('bonus-celebration-modal');
     inFreeSpins = false;
     expandingSymbols = [];
@@ -1663,6 +1740,7 @@
   // ===== Arranque =====
   const SPIN_FACE_PLAY = document.getElementById('spinBtn').innerHTML;
   initSymbolSlots();
+  initSymTip();
   soundFace();
   syncBetBoxes();
   lockCfg(true);
@@ -1681,7 +1759,7 @@
     m.appendChild(card); document.body.appendChild(m);
   });
 
-  const GAME_VERSION = 'v1.52';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
+  const GAME_VERSION = 'v1.53';   // regra: cada atualização sobe 1 (v1.47 -> v1.48 ... v1.99 -> v2.00)
   document.getElementById('gameVersion').textContent = GAME_VERSION;
   restoreGame();
   saveBlocked = false; saveGame();
