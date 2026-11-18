@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#10091c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Pinball Action V9.08 — Entrada</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080711;overscroll-behavior:none;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{height:100dvh}
+#arcade{position:fixed;inset:0;display:block;width:100%;height:100%;border:0;z-index:1;opacity:0;pointer-events:none;background:#000}
+#intro{position:fixed;inset:0;z-index:10;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:env(safe-area-inset-top) 22px env(safe-area-inset-bottom);background:radial-gradient(ellipse at 50% 36%,#533178 0%,#211333 38%,#090711 82%);color:#f8ecda;text-align:center}
+#intro[hidden]{display:none!important}
+#intro:before{content:"";position:absolute;inset:0;opacity:.28;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0px,transparent 3px,#000 4px)}
+.panel{position:relative;display:flex;flex-direction:column;align-items:center;gap:23px;width:min(100%,460px)}
+.kicker{font-size:clamp(12px,2.7vw,15px);font-weight:800;letter-spacing:.36em;color:#f6c77b}
+h1{margin:0;line-height:.88;font-size:clamp(53px,13vw,86px);font-style:italic;font-weight:1000;letter-spacing:-.07em;text-shadow:0 3px #b23a48,0 6px #631e46,0 13px 19px #07030a}
+h1 .top{display:block;color:#ffe16e}
+h1 .bottom{display:block;color:#fef6e5;font-size:.78em;letter-spacing:.03em}
+.rule{width:min(77%,270px);height:3px;background:linear-gradient(90deg,transparent,#ffcc73,transparent)}
+.subtitle{color:#d9c4e8;font-size:13px;letter-spacing:.1em;margin:0}
+#enter{font-size:clamp(22px,6vw,27px);letter-spacing:.1em;min-height:66px;width:min(300px,100%);border-radius:12px;border:3px solid #ffdb81;background:linear-gradient(#329c64,#135733);color:white;font-weight:900;box-shadow:0 5px #052b1b,0 15px 35px #080611;touch-action:manipulation;cursor:pointer}
+#enter:active{transform:translateY(3px);box-shadow:0 2px #052b1b}
+#enter:disabled{opacity:.68;cursor:default}
+#message{max-width:340px;min-height:3em;margin:0;font-size:13px;line-height:1.5;color:#e6d8ec}
+#silent{background:none;border:1px solid #806b8f;color:#e3d2ef;font-weight:650;border-radius:8px;padding:8px 18px;cursor:pointer}
+#silent[hidden]{display:none}
+.version{position:absolute;left:max(12px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));z-index:2;font-size:13px;font-weight:800;letter-spacing:.08em;color:#f8ecda;pointer-events:none}
+@media(orientation:landscape) and (max-height:550px){
+.panel{gap:12px}h1{font-size:clamp(36px,11vh,60px)}#enter{min-height:48px;font-size:18px}.rule{height:2px}.subtitle{display:none}
+}
+.original-logo{width:min(100%,440px);margin:0;line-height:0;filter:drop-shadow(0 0 2px white) drop-shadow(0 0 12px #ef30d4) drop-shadow(0 12px 18px #06030a)}
+.original-logo svg{display:block;width:100%;height:auto;overflow:visible;shape-rendering:geometricPrecision}
+@media(orientation:landscape) and (max-height:550px){.original-logo{width:min(52vh,300px)}}
+#settings-button{position:absolute;right:max(12px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));z-index:3;background:#211b31;border:1px solid #ae92be;color:#e9dcef;border-radius:7px;padding:8px 12px;font-size:12px;font-weight:700;touch-action:manipulation;cursor:pointer}
+#settings-button:disabled{opacity:.4}
+#settings[hidden]{display:none!important}
+#settings{position:fixed;inset:0;z-index:20;overflow:auto;overscroll-behavior:contain;background:#090a10;color:#eee;padding:max(18px,env(safe-area-inset-top)) 18px max(20px,env(safe-area-inset-bottom));text-align:left}
+#settings .settings-inner{max-width:500px;margin:auto}
+#settings h2{font-size:20px;color:#f5ce82;margin:4px 0 8px}
+#settings h3{font-size:13px;letter-spacing:.12em;color:#bda3ce;margin:19px 0 8px}
+#settings label{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #34303d;font-size:14px}
+#settings select{font:inherit;font-size:16px;padding:7px 4px;max-width:54%;min-width:110px;color:#eee;border:1px solid #675b78;border-radius:6px;background:#252133}
+#settings .settings-buttons{display:flex;flex-wrap:wrap;gap:9px;margin:15px 0}
+#settings button{flex:1;font:inherit;font-weight:750;padding:12px 8px;background:#292438;color:#faf2dc;border:1px solid #a793b5;border-radius:8px;cursor:pointer}
+#settings #save-settings{background:#22603e;border-color:#8bcf9c}
+#dip-status{font-size:12px;color:#dcc6e9}
+/* Remastered cabinet marquee; original logo geometry remains intact. */
+#intro{background:radial-gradient(ellipse at 50% 27%,#20394f 0%,#121e35 36%,#070b16 72%);isolation:isolate}
+#intro:before{opacity:1;background:linear-gradient(145deg,transparent 20%,#91d8ff16 20.2%,#91d8ff09 33%,transparent 33.2%),repeating-linear-gradient(135deg,#ffffff04 0px,#ffffff04 1px,transparent 1px,transparent 8px);z-index:-1}
+#intro:after{content:"";position:absolute;inset:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));border:1px solid #94b6d24a;border-radius:22px;pointer-events:none;z-index:-1;box-shadow:inset 0 0 28px #000a,0 0 0 4px #0005}
+.original-logo{filter:drop-shadow(0 7px 0 #050916) drop-shadow(0 0 20px #6486d85c) drop-shadow(0 14px 20px #000a)}
+.kicker{color:#c2d9ed;letter-spacing:.24em}
+.rule{height:2px;width:min(90%,310px);background:linear-gradient(90deg,transparent,#57788b,#f0fbff,#57788b,transparent)}
+#enter{border:2px solid #c4e3e9;background:linear-gradient(170deg,#67c3a6,#176b5a 39%,#10443e 75%,#207868);box-shadow:inset 0 2px 1px #ffffff6b,0 5px 0 #071b22,0 12px 26px #000a;color:#effffa;text-shadow:0 1px 3px #001a16}
+#enter:active{box-shadow:inset 0 2px 9px #0007,0 2px #071b22}
+#settings-button{background:linear-gradient(#314253,#161f2b);border-color:#71899e;color:#e7f2fa}
+</style>
+</head>
+<body>
+<!-- The actual game exists in a DIFFERENT document. It cannot appear before ENTRAR. -->
+<iframe id="arcade" title="Pinball Action — máquina original" allow="autoplay" aria-hidden="true"></iframe>
+<script>{const m=new URLSearchParams(location.search).get("mode");document.getElementById("arcade").src="./game.html?v=908"+(m==="classic"||m==="hd"?"&mode="+m:"");}</script>
+<section id="intro" aria-label="Entrada no Pinball Action">
+ <div class="panel">
+  <div class="kicker">ARCADE ORIGINAL · 1985</div>
+  <h1 class="original-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 835 545" role="img" aria-label="Pinball Action">
+<defs><linearGradient id="logo-face-0" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#ffdce8"/><stop offset=".19" stop-color="#ff9ebd"/><stop offset=".47" stop-color="#ff7aa5"/><stop offset=".66" stop-color="#c75f81"/><stop offset=".78" stop-color="#ff8bb1"/><stop offset="1" stop-color="#91465e"/></linearGradient><path id="logo-letter-0" d="M65 26 L198 26 C254 26 306 57 306 101 C306 159 237 190 124 209 L96 309 L25 309 Z M159 97 L190 97 C216 97 229 106 229 127 C229 151 191 176 132 183 Z"/>
+<linearGradient id="logo-face-1" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#ffe5d0"/><stop offset=".19" stop-color="#ffb57c"/><stop offset=".47" stop-color="#ff9a4c"/><stop offset=".66" stop-color="#c7783b"/><stop offset=".78" stop-color="#ffa763"/><stop offset="1" stop-color="#91582b"/></linearGradient><path id="logo-letter-1" d="M222 169 H289 L243 306 H191 Z"/>
+<linearGradient id="logo-face-2" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#ffecbd"/><stop offset=".19" stop-color="#ffca45"/><stop offset=".47" stop-color="#ffb700"/><stop offset=".66" stop-color="#c78f00"/><stop offset=".78" stop-color="#ffc021"/><stop offset="1" stop-color="#916800"/></linearGradient><path id="logo-letter-2" d="M293 169 H357 L367 251 L381 169 H433 L385 306 H348 L338 205 L302 306 H267 Z"/>
+<linearGradient id="logo-face-3" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#ffffbd"/><stop offset=".19" stop-color="#ffff45"/><stop offset=".47" stop-color="#ffff00"/><stop offset=".66" stop-color="#c7c700"/><stop offset=".78" stop-color="#ffff21"/><stop offset="1" stop-color="#919100"/></linearGradient><path id="logo-letter-3" d="M437 169 H478 C515 169 532 182 532 203 C532 217 524 229 509 236 C526 242 526 259 518 276 C510 297 490 306 469 306 H407 Z M481 207 L472 232 C486 232 498 222 497 214 C496 208 490 206 481 207 Z M461 252 L453 283 C473 283 490 273 496 262 C500 253 487 249 461 252 Z"/>
+<linearGradient id="logo-face-4" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#ffe9bd"/><stop offset=".19" stop-color="#ffc246"/><stop offset=".47" stop-color="#ffab01"/><stop offset=".66" stop-color="#c78501"/><stop offset=".78" stop-color="#ffb622"/><stop offset="1" stop-color="#916101"/></linearGradient><path id="logo-letter-4" d="M567 169 H637 V328 L562 273 L496 344 Z M623 192 L568 261 L617 274 Z"/>
+<linearGradient id="logo-face-5" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#bde9bd"/><stop offset=".19" stop-color="#45c245"/><stop offset=".47" stop-color="#00ac00"/><stop offset=".66" stop-color="#008600"/><stop offset=".78" stop-color="#21b721"/><stop offset="1" stop-color="#006200"/></linearGradient><path id="logo-letter-5" d="M667 169 H721 L693 273 L723 267 L711 306 H641 Z"/>
+<linearGradient id="logo-face-6" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#e3f9d2"/><stop offset=".19" stop-color="#b2ed80"/><stop offset=".47" stop-color="#95e651"/><stop offset=".66" stop-color="#74b33f"/><stop offset=".78" stop-color="#a3e968"/><stop offset="1" stop-color="#55832e"/></linearGradient><path id="logo-letter-6" d="M753 169 H810 L772 269 L816 264 L806 306 H730 Z"/>
+<linearGradient id="logo-face-7" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#ffdce8"/><stop offset=".19" stop-color="#ff9ebd"/><stop offset=".47" stop-color="#ff7aa5"/><stop offset=".66" stop-color="#c75f81"/><stop offset=".78" stop-color="#ff8bb1"/><stop offset="1" stop-color="#91465e"/></linearGradient><path id="logo-letter-7" d="M120 254 H216 V492 L104 426 L26 518 Z M193 310 L111 414 L175 428 Z"/>
+<linearGradient id="logo-face-8" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#ffbdf6"/><stop offset=".19" stop-color="#ff45e5"/><stop offset=".47" stop-color="#ff00dc"/><stop offset=".66" stop-color="#c700ac"/><stop offset=".78" stop-color="#ff21e1"/><stop offset="1" stop-color="#91007d"/></linearGradient><path id="logo-letter-8" d="M335 367 C321 344 292 346 275 354 C235 371 210 413 221 453 C231 489 285 511 329 471 L309 421 C293 442 277 456 272 451 C263 442 278 404 299 386 L310 415 Z"/>
+<linearGradient id="logo-face-9" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#ffbdff"/><stop offset=".19" stop-color="#ff45fe"/><stop offset=".47" stop-color="#ff00fe"/><stop offset=".66" stop-color="#c700c6"/><stop offset=".78" stop-color="#ff21fe"/><stop offset="1" stop-color="#910091"/></linearGradient><path id="logo-letter-9" d="M349 351 H466 L447 403 L425 380 L392 489 H342 L380 390 L333 412 Z"/>
+<linearGradient id="logo-face-10" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#eabdff"/><stop offset=".19" stop-color="#c545ff"/><stop offset=".47" stop-color="#b000ff"/><stop offset=".66" stop-color="#8900c7"/><stop offset=".78" stop-color="#ba21ff"/><stop offset="1" stop-color="#640091"/></linearGradient><path id="logo-letter-10" d="M469 348 H537 L488 489 H447 Z"/>
+<linearGradient id="logo-face-11" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#bde3ff"/><stop offset=".19" stop-color="#45b1fe"/><stop offset=".47" stop-color="#0094fe"/><stop offset=".66" stop-color="#0073c6"/><stop offset=".78" stop-color="#21a2fe"/><stop offset="1" stop-color="#005491"/></linearGradient><path id="logo-letter-11" d="M593 347 C637 343 660 375 654 418 C645 467 610 500 566 497 C523 495 506 465 512 426 C519 380 555 348 593 347 Z M589 385 C575 376 560 398 559 420 C556 437 562 453 575 449 C590 444 603 423 604 406 C604 396 600 389 589 385 Z"/>
+<linearGradient id="logo-face-12" x1="0" y1="0" x2=".22" y2="1"><stop offset="0" stop-color="#bde9f9"/><stop offset=".19" stop-color="#45c1ee"/><stop offset=".47" stop-color="#00aae8"/><stop offset=".66" stop-color="#0085b5"/><stop offset=".78" stop-color="#21b5eb"/><stop offset="1" stop-color="#006184"/></linearGradient><path id="logo-letter-12" d="M665 349 H732 L741 432 L755 349 H811 L773 488 H737 L719 391 L683 488 H641 Z"/></defs>
+<g transform="translate(0 13)" stroke="#0a0c15" stroke-width="11" stroke-linejoin="round" stroke-linecap="round" fill-rule="evenodd"><use href="#logo-letter-0" fill="#111827"/><use href="#logo-letter-1" fill="#111827"/><use href="#logo-letter-2" fill="#111827"/><use href="#logo-letter-3" fill="#111827"/><use href="#logo-letter-4" fill="#111827"/><use href="#logo-letter-5" fill="#111827"/><use href="#logo-letter-6" fill="#111827"/><use href="#logo-letter-7" fill="#111827"/><use href="#logo-letter-8" fill="#111827"/><use href="#logo-letter-9" fill="#111827"/><use href="#logo-letter-10" fill="#111827"/><use href="#logo-letter-11" fill="#111827"/><use href="#logo-letter-12" fill="#111827"/></g>
+<g transform="translate(0 7)" stroke="#171725" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" fill-rule="evenodd"><use href="#logo-letter-0" fill="#703649"/><use href="#logo-letter-1" fill="#704421"/><use href="#logo-letter-2" fill="#705100"/><use href="#logo-letter-3" fill="#707000"/><use href="#logo-letter-4" fill="#704b00"/><use href="#logo-letter-5" fill="#004c00"/><use href="#logo-letter-6" fill="#426524"/><use href="#logo-letter-7" fill="#703649"/><use href="#logo-letter-8" fill="#700061"/><use href="#logo-letter-9" fill="#700070"/><use href="#logo-letter-10" fill="#4d0070"/><use href="#logo-letter-11" fill="#004170"/><use href="#logo-letter-12" fill="#004b66"/></g>
+<g transform="translate(0 0)" stroke="#22222e" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill-rule="evenodd"><use href="#logo-letter-0" fill="url(#logo-face-0)"/><use href="#logo-letter-1" fill="url(#logo-face-1)"/><use href="#logo-letter-2" fill="url(#logo-face-2)"/><use href="#logo-letter-3" fill="url(#logo-face-3)"/><use href="#logo-letter-4" fill="url(#logo-face-4)"/><use href="#logo-letter-5" fill="url(#logo-face-5)"/><use href="#logo-letter-6" fill="url(#logo-face-6)"/><use href="#logo-letter-7" fill="url(#logo-face-7)"/><use href="#logo-letter-8" fill="url(#logo-face-8)"/><use href="#logo-letter-9" fill="url(#logo-face-9)"/><use href="#logo-letter-10" fill="url(#logo-face-10)"/><use href="#logo-letter-11" fill="url(#logo-face-11)"/><use href="#logo-letter-12" fill="url(#logo-face-12)"/></g>
+<g transform="translate(0 -0.75)" stroke="rgba(255,255,255,.56)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill-rule="evenodd"><use href="#logo-letter-0" fill="none"/><use href="#logo-letter-1" fill="none"/><use href="#logo-letter-2" fill="none"/><use href="#logo-letter-3" fill="none"/><use href="#logo-letter-4" fill="none"/><use href="#logo-letter-5" fill="none"/><use href="#logo-letter-6" fill="none"/><use href="#logo-letter-7" fill="none"/><use href="#logo-letter-8" fill="none"/><use href="#logo-letter-9" fill="none"/><use href="#logo-letter-10" fill="none"/><use href="#logo-letter-11" fill="none"/><use href="#logo-letter-12" fill="none"/></g></svg></h1>
+  <div class="rule"></div>
+  <p class="subtitle">PRÉ-VISUALIZAÇÃO HD · MESA 1</p>
+  <label style="font-size:14px;display:block">Alterar imagem (opcional)<input id="preview-image" type="file" accept="image/png,image/jpeg,image/webp" disabled style="display:block;max-width:260px;margin:8px auto;color:white"></label><button id="enter" type="button" disabled>A CARREGAR…</button>
+  <p id="message" role="status" aria-live="polite">A preparar a máquina original</p>
+  <button id="silent" type="button" hidden>Entrar sem som</button>
+ </div>
+ <div class="version">V9.08</div>
+
+ <button id="settings-button" type="button" disabled>CONFIGURAÇÃO</button>
+</section>
+<section id="settings" hidden aria-label="Configuração da máquina">
+<div class="settings-inner">
+<h2>PINBALL ACTION · CONFIGURAÇÃO</h2>
+<p style="font-size:13px;color:#d1c9da;margin:6px 0">Interruptores originais SW1 / SW2 · Tehkan 1985</p>
+<div id="dip-fields"></div>
+<p id="dip-status" role="status"></p>
+<h3>GRAFISMO DA MESA 1 · 2D-HD</h3>
+<label for="main-art-file">Imagem de fundo <input id="main-art-file" type="file" accept="image/png,image/jpeg,image/webp" style="max-width:55%;font-size:14px"></label>
+<p id="main-art-status" role="status" aria-live="polite" style="font-size:13px;line-height:1.4;color:#dfc3df">A nova mesa futurista está incluída automaticamente. As luzes e peças móveis continuam ligadas à ROM.</p>
+<button id="main-art-reset" type="button" style="width:100%">REPOR FUNDO</button>
+<div class="settings-buttons"><button id="save-settings" type="button">GUARDAR</button><button id="reset-settings" type="button">ORIGINAL</button><button id="close-settings" type="button">SAIR</button></div>
+</div></section>
+<script>
+(()=>{
+'use strict';
+const frame=document.getElementById('arcade');
+const intro=document.getElementById('intro');
+const button=document.getElementById('enter');
+const message=document.getElementById('message');
+const silent=document.getElementById('silent');
+let testing=false;
+const settings=document.getElementById('settings'),settingsButton=document.getElementById('settings-button'),dipStatus=document.getElementById('dip-status');
+const levels=[[0,'Fácil'],[1,'Médio'],[2,'Difícil'],[3,'Muito difícil']];
+// Exact electrical values from original SW1 / SW2 hardware mapping.
+const fields=[
+ ['sw1',3,'Fichas B',[[0,'1 ficha / 1 crédito'],[1,'1 ficha / 2 créditos'],[2,'1 ficha / 3 créditos'],[3,'1 ficha / 6 créditos']]],
+ ['sw1',12,'Fichas A',[[4,'2 fichas / 1 crédito'],[0,'1 ficha / 1 crédito'],[8,'1 ficha / 2 créditos'],[12,'1 ficha / 3 créditos']]],
+ ['sw1',48,'Número de bolas',[[48,'2'],[0,'3'],[16,'4'],[32,'5']]],
+ ['sw1',128,'Som de demonstração',[[0,'Ligado'],[128,'Desligado']]],
+ ['sw2',7,'Bola extra (pontos)',[[1,'70k / 200k / 1000k'],[4,'100k / 300k / 1000k'],[0,'70k / 200k'],[3,'100k / 300k'],[6,'200k / 1000k'],[2,'100k'],[5,'200k'],[7,'Nenhuma']]],
+ ['sw2',8,'Dificuldade Extra',[[0,'Fácil'],[8,'Difícil']]],
+ ['sw2',48,'Flippers',levels.map(([v,t])=>[v*16,t])],
+ ['sw2',192,'Saídas laterais',levels.map(([v,t])=>[v*64,t])]
+];
+const dipFields=document.getElementById('dip-fields');let prevBank='';
+for(const field of fields){
+ const [bank,mask,label,opts]=field;
+ if(bank!==prevBank){const h=document.createElement('h3');h.textContent=bank.toUpperCase()+' · DIP';dipFields.append(h);prevBank=bank;}
+ const row=document.createElement('label');row.textContent=label;
+ const select=document.createElement('select');select.setAttribute('aria-label',label);
+ for(const [v,t] of opts){const opt=document.createElement('option');opt.value=v;opt.textContent=t;select.append(opt);}
+ field.push(select);row.append(select);dipFields.append(row);
+}
+function showDips(d){
+ for(const [bank,mask,,,el] of fields)el.value=String(d[bank]&mask);
+ dipStatus.textContent='Máquina vertical · configurações reais da ROM';
+}
+const mainArtFile=document.getElementById('main-art-file'),mainArtStatus=document.getElementById('main-art-status');
+const previewImage=document.getElementById('preview-image');previewImage.addEventListener('change',async()=>{const file=previewImage.files?.[0];if(!file)return;button.disabled=true;message.textContent='A aplicar a imagem HD…';try{const result=await child().__PB_MAIN_ART_SET(file);message.textContent=result.loaded?'Imagem HD aplicada. Carrega em ENTRAR.':'Imagem não aplicada.';}catch(e){message.textContent=e.message||'Erro ao aplicar imagem.';}finally{button.disabled=false;previewImage.value='';}});
+mainArtFile.addEventListener('change',async()=>{
+ const file=mainArtFile.files?.[0];if(!file)return;
+ mainArtStatus.textContent='A aplicar ilustração…';
+ try{
+  const result=await child().__PB_MAIN_ART_SET(file);
+  mainArtStatus.textContent=result.loaded?(result.saved?'Fundo aplicado e guardado neste dispositivo.':'Fundo aplicado nesta sessão; armazenamento indisponível.'):'O pedido foi substituído.';
+ }catch(error){mainArtStatus.textContent=error.message||'Não foi possível carregar a imagem.';}
+ mainArtFile.value='';
+});
+document.getElementById('main-art-reset').addEventListener('click',async()=>{
+ try{await child().__PB_MAIN_ART_RESET();mainArtStatus.textContent='Fundo reposto.';}catch{mainArtStatus.textContent='Não foi possível repor o fundo.';}
+});
+settingsButton.addEventListener('click',()=>{
+ const w=child();if(!w||opening||entered||testing)return;
+ showDips(w.__PB_DIP_GET());settings.hidden=false;
+});
+document.getElementById('reset-settings').addEventListener('click',()=>showDips({sw1:64,sw2:0}));
+document.getElementById('close-settings').addEventListener('click',()=>{settings.hidden=true;});
+document.getElementById('save-settings').addEventListener('click',()=>{
+ const w=child(),d={sw1:64,sw2:0};if(!w)return;
+ for(const [bank,mask,,,el] of fields)d[bank]|=Number(el.value)&mask;
+ if(!w.__PB_DIP_SET(d.sw1,d.sw2)){dipStatus.textContent='Não foi possível aplicar as opções.';return;}
+ try{localStorage.setItem('pb-dips-v908',JSON.stringify(d));}catch{dipStatus.textContent='Aplicado nesta sessão; armazenamento indisponível.';return;}
+ settings.hidden=true;
+ message.textContent='Configurações guardadas · prontas para jogar';
+});
+let ready=false,opening=false,entered=false,interval=null,lastTouch=-Infinity;
+function child(){
+ try{
+  const w=frame.contentWindow;
+  return w&&typeof w.__PB_ENTER_ARCADE==='function'&&
+   typeof w.__PB_REVEAL_ARCADE==='function'&&
+   typeof w.__PB_ENTRY_STATUS==='function'?w:null;
+ }catch{return null;}
+}
+function stopCheck(){if(interval!==null){clearInterval(interval);interval=null;}}
+// An optional self-contained local launcher can transfer its bundled art.
+// The fragment contains only a WebP data URL, never executable content.
+async function loadBundledArtwork(){
+ const prefix='#board-webp=';
+ if(!location.hash.startsWith(prefix))return;
+ const value=location.hash.slice(prefix.length);
+ if(value.length>2000000||!/^[A-Za-z0-9+/=]+$/.test(value))return;
+ button.disabled=true;message.textContent='A aplicar a mesa futurista…';
+ try{
+  const bytes=Uint8Array.from(atob(value),c=>c.charCodeAt(0));
+  if(bytes.length<12||String.fromCharCode(...bytes.subarray(0,4))!=='RIFF'||String.fromCharCode(...bytes.subarray(8,12))!=='WEBP')throw Error('Imagem inválida');
+  const r=await child().__PB_MAIN_ART_SET(new Blob([bytes],{type:'image/webp'}));
+  if(!r.loaded)throw Error('Imagem não aplicada');
+  history.replaceState(null,'',location.pathname+location.search);
+  message.textContent='Mesa futurista aplicada. Carrega em ENTRAR.';
+ }catch(e){message.textContent='Não foi possível aplicar a mesa: '+e.message;}
+ finally{button.disabled=false;}
+}
+function readyCheck(){
+ if(ready)return;
+ if(!child())return;
+ ready=true;
+ previewImage.disabled=false;
+ button.disabled=false;
+ settingsButton.disabled=typeof child().__PB_DIP_SET!=='function';
+ button.textContent='ENTRAR';
+ message.textContent='Mesa futurista incluída. Carrega em ENTRAR para jogar.';
+ loadBundledArtwork();
+}
+frame.addEventListener('load',readyCheck);
+const loadPoll=setInterval(()=>{
+ readyCheck();if(ready)clearInterval(loadPoll);
+},120);
+function reveal(w){
+ if(entered)return;
+ entered=true;opening=false;stopCheck();
+ w.__PB_REVEAL_ARCADE();
+ frame.style.opacity='1';
+ frame.style.pointerEvents='auto';
+ frame.removeAttribute('aria-hidden');
+ intro.hidden=true;
+}
+function begin(){
+ if(entered||opening||testing)return;
+ const w=child();
+ if(!w){
+  button.textContent='A CARREGAR…';
+  button.disabled=true;
+  message.textContent='A preparar a máquina original';
+  return;
+ }
+ opening=true;
+ // Make the iframe renderable *during* the user's gesture. The opaque
+ // entrance screen still covers it, so no arcade commands appear yet.
+ frame.style.opacity='1';
+ button.disabled=true;
+ button.textContent='A INICIAR…';
+ silent.hidden=true;
+ message.textContent='A iniciar a música original do título…';
+ // Crucial for Safari: call the SAME-ORIGIN game AudioContext inside this
+ // exact physical touch/click gesture, not in a post-load or timer callback.
+ try{w.__PB_ENTER_ARCADE();if(typeof w.__PB_DEMO_SOUNDS==='function'&&!w.__PB_DEMO_SOUNDS()){reveal(w);return;}}catch(e){
+  opening=false;button.disabled=false;button.textContent='ENTRAR';
+  message.textContent='Não foi possível ativar o áudio. Volta a tocar em ENTRAR.';
+  silent.hidden=false;
+  return;
+ }
+ const start=performance.now();
+ function check(){
+  if(entered)return;
+  const game=child();
+  if(!game)return;
+  let state=null;
+  try{state=game.__PB_ENTRY_STATUS();}catch{}
+  if(state?.context==='running'&&state.titleAudible){
+   reveal(game);
+  }else if(performance.now()-start>=8500){
+   stopCheck();opening=false;
+   button.disabled=false;button.textContent='ENTRAR';
+   message.textContent='O Safari ainda não libertou o som. Podes tentar de novo.';
+   silent.hidden=false;
+  }
+ }
+ interval=setInterval(check,55);
+ check();
+}
+button.addEventListener('touchend',e=>{
+ if(e.cancelable)e.preventDefault();
+ lastTouch=performance.now();
+ begin();
+},{passive:false});
+button.addEventListener('click',e=>{
+ if(performance.now()-lastTouch<800){e.preventDefault();return;}
+ begin();
+});
+silent.addEventListener('click',()=>{
+ const w=child();if(!w)return;
+ try{w.__PB_ENTER_SILENT();}catch{return;}
+ entered=true;stopCheck();
+ frame.style.opacity='1';frame.style.pointerEvents='auto';
+ frame.removeAttribute('aria-hidden');intro.hidden=true;
+});
+window.addEventListener('pageshow',readyCheck);
+})();
+</script>
+</body>
+</html>
