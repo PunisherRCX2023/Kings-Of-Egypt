@@ -1,0 +1,218 @@
+{
+  "source": "original a-e3.bin Z80 + three AY8910 (1985)",
+  "sampleRate": 22050,
+  "commands": {
+    "1": {
+      "file": "cmd-01.mp3",
+      "duration": 0.38,
+      "peak": 0.078,
+      "bytes": 5687
+    },
+    "2": {
+      "file": "cmd-02.mp3",
+      "duration": 1.731,
+      "peak": 0.76,
+      "bytes": 21987
+    },
+    "3": {
+      "file": "cmd-03.mp3",
+      "duration": 2.481,
+      "peak": 0.597,
+      "bytes": 30765
+    },
+    "4": {
+      "file": "cmd-04.mp3",
+      "duration": 4.182,
+      "peak": 0.98,
+      "bytes": 51454
+    },
+    "7": {
+      "file": "cmd-07.mp3",
+      "duration": 0.48,
+      "peak": 0.273,
+      "bytes": 6941
+    },
+    "8": {
+      "file": "cmd-08.mp3",
+      "duration": 0.58,
+      "peak": 0.554,
+      "bytes": 8195
+    },
+    "9": {
+      "file": "cmd-09.mp3",
+      "duration": 5.2,
+      "peak": 0.158,
+      "bytes": 63679
+    },
+    "10": {
+      "file": "cmd-10.mp3",
+      "duration": 5.2,
+      "peak": 0.748,
+      "bytes": 63679
+    },
+    "12": {
+      "file": "cmd-12.mp3",
+      "duration": 0.73,
+      "peak": 0.58,
+      "bytes": 9762
+    },
+    "13": {
+      "file": "cmd-13.mp3",
+      "duration": 0.88,
+      "peak": 0.388,
+      "bytes": 11643
+    },
+    "14": {
+      "file": "cmd-14.mp3",
+      "duration": 1.931,
+      "peak": 0.458,
+      "bytes": 24182
+    },
+    "15": {
+      "file": "cmd-15.mp3",
+      "duration": 0.43,
+      "peak": 0.384,
+      "bytes": 6314
+    },
+    "16": {
+      "file": "cmd-16.mp3",
+      "duration": 1.481,
+      "peak": 0.549,
+      "bytes": 18853
+    },
+    "17": {
+      "file": "cmd-17.mp3",
+      "duration": 5.2,
+      "peak": 0.488,
+      "bytes": 63679
+    },
+    "18": {
+      "file": "cmd-18.mp3",
+      "duration": 5.2,
+      "peak": 0.488,
+      "bytes": 63679
+    },
+    "19": {
+      "file": "cmd-19.mp3",
+      "duration": 2.331,
+      "peak": 0.322,
+      "bytes": 29197
+    },
+    "20": {
+      "file": "cmd-20.mp3",
+      "duration": 5.2,
+      "peak": 0.22,
+      "bytes": 63679
+    },
+    "21": {
+      "file": "cmd-21.mp3",
+      "duration": 0.98,
+      "peak": 0.553,
+      "bytes": 12897
+    },
+    "22": {
+      "file": "cmd-22.mp3",
+      "duration": 0.24,
+      "peak": 0.195,
+      "bytes": 4120
+    },
+    "23": {
+      "file": "cmd-23.mp3",
+      "duration": 0.83,
+      "peak": 0.555,
+      "bytes": 11016
+    },
+    "24": {
+      "file": "cmd-24.mp3",
+      "duration": 2.231,
+      "peak": 0.388,
+      "bytes": 27943
+    },
+    "25": {
+      "file": "cmd-25.mp3",
+      "duration": 2.731,
+      "peak": 0.635,
+      "bytes": 33899
+    },
+    "26": {
+      "file": "cmd-26.mp3",
+      "duration": 5.2,
+      "peak": 1,
+      "bytes": 63679
+    },
+    "27": {
+      "file": "cmd-27.mp3",
+      "duration": 5.2,
+      "peak": 0.955,
+      "bytes": 63679
+    },
+    "28": {
+      "file": "cmd-28.mp3",
+      "duration": 0.88,
+      "peak": 0.553,
+      "bytes": 11643
+    },
+    "29": {
+      "file": "cmd-29.mp3",
+      "duration": 3.1,
+      "peak": 0.552,
+      "bytes": 38288
+    },
+    "30": {
+      "file": "cmd-30.mp3",
+      "duration": 0.68,
+      "peak": 0.388,
+      "bytes": 9449
+    }
+  },
+  "music": {
+    "9": {
+      "file": "bgm-09.mp3",
+      "duration": 52,
+      "origin": "ROM a-e3.bin via Z80 + AY8910",
+      "bytes": 625103
+    },
+    "10": {
+      "file": "bgm-10.mp3",
+      "duration": 52,
+      "origin": "ROM a-e3.bin via Z80 + AY8910",
+      "bytes": 625103
+    },
+    "17": {
+      "file": "bgm-17.mp3",
+      "duration": 52,
+      "origin": "ROM a-e3.bin via Z80 + AY8910",
+      "bytes": 625103
+    },
+    "18": {
+      "file": "bgm-18.mp3",
+      "duration": 52,
+      "origin": "ROM a-e3.bin via Z80 + AY8910",
+      "bytes": 625103
+    },
+    "20": {
+      "file": "bgm-20.mp3",
+      "duration": 52,
+      "origin": "ROM a-e3.bin via Z80 + AY8910",
+      "bytes": 625103
+    },
+    "26": {
+      "file": "bgm-26.mp3",
+      "duration": 52,
+      "origin": "ROM a-e3.bin via Z80 + AY8910",
+      "bytes": 625103
+    },
+    "27": {
+      "file": "bgm-27.mp3",
+      "duration": 52,
+      "origin": "ROM a-e3.bin via Z80 + AY8910",
+      "bytes": 625103
+    },
+    "29": {
+      "file": "bgm-29.mp3",
+      "duration": 52,
+      "origin": "ROM a-e3.bin via Z80 + AY8910",
+      "bytes": 625103
+    }
+  }
+}
